@@ -457,7 +457,7 @@ func TestGetDefaultSettingsPath(t *testing.T) {
 	}
 
 	// 路徑應該以 settings.json 結尾
-	if !filepath.Base(path) == "settings.json" {
+	if filepath.Base(path) != "settings.json" {
 		t.Error("預設設定檔案路徑應該以 settings.json 結尾")
 	}
 }

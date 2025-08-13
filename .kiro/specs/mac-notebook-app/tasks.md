@@ -106,9 +106,9 @@ func FunctionName(param1 string, param2 int) error {
     - **為所有程式碼添加詳細的繁體中文註解和流程說明**
     - _需求: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 4. 實作加密功能
+- [x] 4. 實作加密功能
 
-  - [ ] 4.1 建立加密服務基礎架構
+  - [x] 4.1 建立加密服務基礎架構
 
     - 定義 EncryptionService 介面
     - 實作 AES-256 加密演算法
@@ -118,7 +118,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄加密服務基礎架構的實作**
     - _需求: 4.2, 6.2, 6.5_
 
-  - [ ] 4.2 實作密碼驗證系統
+  - [x] 4.2 實作密碼驗證系統
 
     - 創建密碼雜湊和驗證邏輯
     - 實作密碼強度檢查
@@ -128,7 +128,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄密碼驗證系統的實作**
     - _需求: 4.1, 4.3, 4.4_
 
-  - [ ] 4.3 整合 macOS 生物驗證
+  - [x] 4.3 整合 macOS 生物驗證
     - 使用 CGO 調用 LocalAuthentication API
     - 實作 Touch ID/Face ID 驗證流程
     - 添加生物驗證失敗的回退機制

@@ -36,6 +36,11 @@ type FileRepository interface {
 	// 參數：path（目錄路徑）
 	// 回傳：檔案資訊陣列和可能的錯誤
 	ListDirectory(path string) ([]*models.FileInfo, error)
+	
+	// WalkDirectory 遞迴遍歷目錄並對每個檔案執行回調函數
+	// 參數：path（目錄路徑）、walkFunc（對每個檔案執行的回調函數）
+	// 回傳：可能的錯誤
+	WalkDirectory(path string, walkFunc func(*models.FileInfo) error) error
 }
 
 // SettingsRepository 定義設定持久化的介面

@@ -3,6 +3,7 @@
 package models
 
 import (
+	"crypto/rand"
 	"strings"
 	"time"
 )
@@ -248,8 +249,10 @@ func randomString(length int) string {
 	
 	// 為每個位置隨機選擇字符
 	for i := range b {
-		// 使用當前時間的奈秒值作為隨機種子
-		randomIndex := time.Now().UnixNano() % int64(len(charset))
+		// 使用安全的隨機數生成器
+		randomBytes := make([]byte, 1)
+		rand.Read(randomBytes)
+		randomIndex := int(randomBytes[0]) % len(charset)
 		b[i] = charset[randomIndex]
 	}
 	

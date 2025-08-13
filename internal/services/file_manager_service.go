@@ -334,8 +334,9 @@ func (s *LocalFileManagerService) MoveFile(sourcePath, destPath string) error {
 	}
 	
 	return nil
-}// 
-GetFileTree 取得完整的檔案樹狀結構
+}
+
+// GetFileTree 取得完整的檔案樹狀結構
 // 參數：rootPath（根目錄路徑，相對於基礎目錄）
 // 回傳：檔案樹節點和可能的錯誤
 //

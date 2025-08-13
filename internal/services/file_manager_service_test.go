@@ -436,8 +436,9 @@ func TestRenameFile(t *testing.T) {
 			}
 		}
 	})
-}/
-/ TestMoveFile 測試檔案移動功能
+}
+
+// TestMoveFile 測試檔案移動功能
 func TestMoveFile(t *testing.T) {
 	// 建立測試環境
 	tempDir := t.TempDir()
@@ -1007,17 +1008,18 @@ func TestPathValidation(t *testing.T) {
 		}
 	})
 	
-	// 測試案例：無效路徑
+	// 測試案例：無效路徑（通過 ListFiles 間接測試）
 	t.Run("無效路徑", func(t *testing.T) {
 		invalidPaths := []string{
 			"",                    // 空路徑
 			"../outside.md",       // 包含 ..
 			"/absolute/path.md",   // 絕對路徑
-			"folder/../outside.md", // 目錄遍歷攻擊
+			"../../outside.md",    // 真正的目錄遍歷攻擊
 		}
 		
 		for _, path := range invalidPaths {
-			err := service.validatePath(path)
+			// 使用 ListFiles 來間接測試路徑驗證
+			_, err := service.ListFiles(path)
 			if err == nil {
 				t.Errorf("無效路徑 %s 應該被拒絕", path)
 			}

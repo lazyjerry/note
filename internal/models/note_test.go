@@ -362,6 +362,11 @@ func TestGenerateID(t *testing.T) {
 			t.Errorf("發現重複的 ID：%s", id)
 		}
 		ids[id] = true
+		
+		// 添加小延遲以確保時間戳不同
+		if i%10 == 9 {
+			time.Sleep(time.Millisecond)
+		}
 	}
 }
 

@@ -220,8 +220,9 @@ func (r *LocalFileRepository) CreateDirectory(path string) error {
 	}
 	
 	return nil
-}// ListD
-irectory 列出指定目錄中的檔案和子目錄
+}
+
+// ListDirectory 列出指定目錄中的檔案和子目錄
 // 參數：path（目錄路徑，相對於基礎目錄）
 // 回傳：檔案資訊陣列和可能的錯誤
 //

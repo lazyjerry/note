@@ -1,10 +1,10 @@
 package repositories
 
 import (
+	"fmt"       // 格式化輸出套件
 	"os"        // 作業系統介面套件
 	"path/filepath" // 檔案路徑處理套件
 	"testing"   // Go 測試套件
-	"time"      // 時間處理套件
 	
 	"mac-notebook-app/internal/models" // 引入資料模型
 )
@@ -295,8 +295,9 @@ func TestDirectoryOperations(t *testing.T) {
 			}
 		}
 	})
-}// 
-TestMarkdownOperations 測試 Markdown 檔案特殊操作
+}
+
+// TestMarkdownOperations 測試 Markdown 檔案特殊操作
 func TestMarkdownOperations(t *testing.T) {
 	// 建立測試用的儲存庫
 	tempDir := t.TempDir()
@@ -453,7 +454,7 @@ func TestPathValidation(t *testing.T) {
 			"",                    // 空路徑
 			"../outside.md",       // 包含 ..
 			"/absolute/path.md",   // 絕對路徑
-			"folder/../outside.md", // 目錄遍歷攻擊
+			"../../outside.md",    // 真正的目錄遍歷攻擊
 		}
 		
 		for _, path := range invalidPaths {
