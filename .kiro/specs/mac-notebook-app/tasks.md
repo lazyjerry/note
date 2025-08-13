@@ -62,9 +62,9 @@ func FunctionName(param1 string, param2 int) error {
     - **為所有程式碼添加詳細的繁體中文註解和流程說明**
     - _需求: 6.1, 6.2, 7.6_
 
-- [-] 3. 建立檔案系統操作
+- [x] 3. 建立檔案系統操作
 
-  - [-] 3.1 實作 FileRepository
+  - [x] 3.1 實作 FileRepository
 
     - 創建檔案讀寫的基礎介面
     - 實作 Markdown 檔案的載入和保存
@@ -72,7 +72,7 @@ func FunctionName(param1 string, param2 int) error {
     - **為所有程式碼添加詳細的繁體中文註解和流程說明**
     - _需求: 1.3, 2.1, 2.3_
 
-  - [ ] 3.2 實作 FileManagerService
+  - [x] 3.2 實作 FileManagerService
     - 實作檔案和資料夾的 CRUD 操作
     - 添加檔案樹狀結構的遍歷功能
     - 實作檔案拖拽和重新命名功能
