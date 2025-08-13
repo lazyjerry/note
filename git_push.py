@@ -12,7 +12,7 @@ Git 自動添加推送到遠端倉庫工具
 6. 提交變更到本地倉庫
 7. 推送到遠端倉庫
 
-作者: 自動化 Git 工作流程工具
+作者: Vibe Jerry
 版本: 1.0
 """
 
@@ -154,15 +154,18 @@ def confirm_commit(message: str) -> bool:
     
     # 持續詢問直到獲得有效回應
     while True:
-        confirm = input("是否確認提交？(y/n): ").strip().lower()
+        confirm = input("是否確認提交？(Y/n): ").strip().lower()
+        # 如果用戶直接按 Enter（空輸入），預設為確認 (y)
+        if confirm == "":
+            return True
         # 支援多種確認方式：英文 (y, yes) 和中文 (是, 確認)
-        if confirm in ['y', 'yes', '是', '確認']:
+        elif confirm in ['y', 'yes', '是', '確認']:
             return True
         # 支援多種取消方式：英文 (n, no) 和中文 (否, 取消)
         elif confirm in ['n', 'no', '否', '取消']:
             return False
         else:
-            print("請輸入 y 或 n")
+            print("請輸入 y 或 n，或直接按 Enter 確認")
 
 
 def commit_changes(message: str) -> bool:
