@@ -45,9 +45,9 @@ func FunctionName(param1 string, param2 int) error {
   - 確保註解符合 Go 文件慣例
   - _需求: 程式碼可讀性和維護性_
 
-- [ ] 2. 實作資料模型和驗證
+- [x] 2. 實作資料模型和驗證
 
-  - [ ] 2.1 創建 Note 資料模型
+  - [x] 2.1 創建 Note 資料模型
 
     - 實作 Note 結構體和相關方法
     - 添加資料驗證邏輯
@@ -55,16 +55,16 @@ func FunctionName(param1 string, param2 int) error {
     - **為所有程式碼添加詳細的繁體中文註解和流程說明**
     - _需求: 1.1, 1.3, 4.2_
 
-  - [ ] 2.2 實作 Settings 資料模型
+  - [x] 2.2 實作 Settings 資料模型
     - 創建 Settings 結構體和預設值
     - 實作設定的載入和保存邏輯
     - 編寫 Settings 模型的單元測試
     - **為所有程式碼添加詳細的繁體中文註解和流程說明**
     - _需求: 6.1, 6.2, 7.6_
 
-- [ ] 3. 建立檔案系統操作
+- [-] 3. 建立檔案系統操作
 
-  - [ ] 3.1 實作 FileRepository
+  - [-] 3.1 實作 FileRepository
 
     - 創建檔案讀寫的基礎介面
     - 實作 Markdown 檔案的載入和保存

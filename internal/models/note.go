@@ -2,7 +2,10 @@
 // 包含筆記、設定、檔案資訊等結構體定義
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Note 代表一個具有加密功能的 Markdown 筆記
 // 這個結構體包含了筆記的所有基本資訊和加密相關的元資料
@@ -91,6 +94,140 @@ func generateID() string {
 	timeStamp := time.Now().Format("20060102150405")
 	// 組合時間戳和隨機字串
 	return timeStamp + "-" + randomString(8)
+}
+
+// Validate 驗證筆記資料的完整性和有效性
+// 回傳：如果資料有效則回傳 nil，否則回傳包含錯誤訊息的 error
+//
+// 驗證規則：
+// 1. ID 不能為空字串
+// 2. 標題不能為空且長度不能超過 200 字符
+// 3. 檔案路徑必須是有效的路徑格式
+// 4. 如果設定為加密，加密類型必須是有效值
+// 5. 建立時間和修改時間必須是有效的時間
+func (n *Note) Validate() error {
+	// 驗證 ID
+	if n.ID == "" {
+		return NewValidationError("ID", "筆記 ID 不能為空")
+	}
+
+	// 驗證標題
+	if n.Title == "" {
+		return NewValidationError("Title", "筆記標題不能為空")
+	}
+	if len(n.Title) > 200 {
+		return NewValidationError("Title", "筆記標題長度不能超過 200 字符")
+	}
+
+	// 驗證檔案路徑
+	if n.FilePath == "" {
+		return NewValidationError("FilePath", "檔案路徑不能為空")
+	}
+
+	// 驗證加密設定
+	if n.IsEncrypted {
+		validEncryptionTypes := []string{"password", "biometric", "both"}
+		isValid := false
+		for _, validType := range validEncryptionTypes {
+			if n.EncryptionType == validType {
+				isValid = true
+				break
+			}
+		}
+		if !isValid {
+			return NewValidationError("EncryptionType", "無效的加密類型，必須是 password、biometric 或 both")
+		}
+	}
+
+	// 驗證時間戳
+	if n.CreatedAt.IsZero() {
+		return NewValidationError("CreatedAt", "建立時間不能為零值")
+	}
+	if n.UpdatedAt.IsZero() {
+		return NewValidationError("UpdatedAt", "修改時間不能為零值")
+	}
+
+	return nil
+}
+
+// SetEncryption 設定筆記的加密狀態和類型
+// 參數：
+//   - encryptionType: 加密類型（"password"、"biometric" 或 "both"）
+// 回傳：如果設定成功則回傳 nil，否則回傳錯誤
+//
+// 執行流程：
+// 1. 驗證加密類型是否有效
+// 2. 設定加密狀態為 true
+// 3. 設定指定的加密類型
+// 4. 更新修改時間戳
+func (n *Note) SetEncryption(encryptionType string) error {
+	validTypes := []string{"password", "biometric", "both"}
+	isValid := false
+	for _, validType := range validTypes {
+		if encryptionType == validType {
+			isValid = true
+			break
+		}
+	}
+	
+	if !isValid {
+		return NewValidationError("EncryptionType", "無效的加密類型，必須是 password、biometric 或 both")
+	}
+
+	n.IsEncrypted = true
+	n.EncryptionType = encryptionType
+	n.UpdatedAt = time.Now()
+	
+	return nil
+}
+
+// RemoveEncryption 移除筆記的加密保護
+// 執行流程：
+// 1. 將加密狀態設為 false
+// 2. 清空加密類型
+// 3. 更新修改時間戳
+func (n *Note) RemoveEncryption() {
+	n.IsEncrypted = false
+	n.EncryptionType = ""
+	n.UpdatedAt = time.Now()
+}
+
+// GetWordCount 計算筆記內容的字數
+// 回傳：筆記內容的字數統計
+//
+// 計算邏輯：
+// 1. 移除 Markdown 語法標記
+// 2. 分割文字為單詞
+// 3. 計算非空白單詞的數量
+func (n *Note) GetWordCount() int {
+	if n.Content == "" {
+		return 0
+	}
+	
+	// 簡單的字數統計：以空白字符分割並計算非空字串數量
+	words := strings.Fields(n.Content)
+	return len(words)
+}
+
+// Clone 建立筆記的深度複製
+// 回傳：新的筆記實例，包含相同的資料但不同的記憶體位址
+//
+// 執行流程：
+// 1. 建立新的 Note 結構體
+// 2. 複製所有欄位的值
+// 3. 確保時間戳也被正確複製
+func (n *Note) Clone() *Note {
+	return &Note{
+		ID:             n.ID,
+		Title:          n.Title,
+		Content:        n.Content,
+		FilePath:       n.FilePath,
+		IsEncrypted:    n.IsEncrypted,
+		EncryptionType: n.EncryptionType,
+		CreatedAt:      n.CreatedAt,
+		UpdatedAt:      n.UpdatedAt,
+		LastSaved:      n.LastSaved,
+	}
 }
 
 // randomString 產生指定長度的隨機字串

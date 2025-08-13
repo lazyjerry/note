@@ -16,6 +16,18 @@ func (e *AppError) Error() string {
 	return e.Message
 }
 
+// ValidationError 代表資料驗證錯誤
+// 用於標識特定欄位的驗證失敗
+type ValidationError struct {
+	Field   string `json:"field"`   // 驗證失敗的欄位名稱
+	Message string `json:"message"` // 驗證錯誤的詳細訊息
+}
+
+// Error 實作 error 介面，回傳驗證錯誤訊息
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
 // 錯誤代碼常數定義
 // 這些常數用於標識不同類型的應用程式錯誤
 const (
@@ -25,6 +37,7 @@ const (
 	ErrBiometricFailed  = "BIOMETRIC_FAILED"   // 生物識別驗證失敗
 	ErrSaveFailed       = "SAVE_FAILED"        // 保存失敗
 	ErrPermissionDenied = "PERMISSION_DENIED"  // 權限被拒絕
+	ErrValidationFailed = "VALIDATION_FAILED"  // 資料驗證失敗
 )
 
 // 預定義的錯誤實例
@@ -54,5 +67,20 @@ func NewAppError(code, message, details string) *AppError {
 		Code:    code,    // 設定錯誤代碼
 		Message: message, // 設定錯誤訊息
 		Details: details, // 設定詳細資訊
+	}
+}
+
+// NewValidationError 建立一個新的驗證錯誤實例
+// 參數：
+//   - field: 驗證失敗的欄位名稱
+//   - message: 驗證錯誤的詳細訊息
+// 回傳：指向新建立的 ValidationError 的指標
+//
+// 使用範例：
+//   err := NewValidationError("Title", "筆記標題不能為空")
+func NewValidationError(field, message string) *ValidationError {
+	return &ValidationError{
+		Field:   field,   // 設定欄位名稱
+		Message: message, // 設定錯誤訊息
 	}
 }
