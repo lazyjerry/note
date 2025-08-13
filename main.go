@@ -7,6 +7,9 @@ import (
 	"fyne.io/fyne/v2/app"      // Fyne 應用程式建立套件
 	"fyne.io/fyne/v2/container" // Fyne 容器佈局套件
 	"fyne.io/fyne/v2/widget"   // Fyne UI 元件套件
+	"fyne.io/fyne/v2/theme"
+	_ "embed"
+	"image/color"
 )
 
 // main 函數是應用程式的主要入口點
@@ -24,6 +27,8 @@ func main() {
 	// 設定應用程式的基本屬性
 	// 在 Fyne v2 中，應用程式 ID 通過不同的方式設定
 	myApp.SetIcon(nil) // 暫時不設定圖示，後續會添加
+
+	myApp.Settings().SetTheme(&cjkTheme{base: theme.LightTheme()})
 
 	// 建立主視窗
 	// 這將建立應用程式的主要使用者介面視窗
@@ -99,4 +104,44 @@ func createBasicLayout() fyne.CanvasObject {
 	)
 	
 	return content
+}
+
+//go:embed assets/font/GoogleSansCode-Regular.ttf
+var fontRegular []byte
+
+//go:embed assets/font/GoogleSansCode-Bold.ttf
+var fontBold []byte
+
+// 若沒有可留空，程式會回退 Regular
+//go:embed assets/font/GoogleSansCode-Italic.ttf
+var fontItalic []byte
+
+//go:embed assets/font/GoogleSansCode-Regular.ttf
+var fontMono []byte
+
+type cjkTheme struct{ base fyne.Theme }
+
+func (t cjkTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Color {
+	return t.base.Color(n, v)
+}
+
+func (t cjkTheme) Icon(n fyne.ThemeIconName) fyne.Resource {
+	return t.base.Icon(n)
+}
+func (t cjkTheme) Size(n fyne.ThemeSizeName) float32 {
+	return t.base.Size(n)
+}
+
+func (t cjkTheme) Font(s fyne.TextStyle) fyne.Resource {
+	// 依樣式回傳對應字型，沒有就回退 Regular
+	switch {
+	case s.Monospace && len(fontMono) > 0:
+		return fyne.NewStaticResource("GoogleSansCode-Regular.ttf", fontMono)
+	case s.Bold && len(fontBold) > 0:
+		return fyne.NewStaticResource("GoogleSansCode-Bold.ttf", fontBold)
+	case s.Italic && len(fontItalic) > 0:
+		return fyne.NewStaticResource("GoogleSansCode-Italic.ttf", fontItalic)
+	default:
+		return fyne.NewStaticResource("GoogleSansCode-Regular.ttf", fontRegular)
+	}
 }
