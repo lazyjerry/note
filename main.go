@@ -28,11 +28,11 @@ func main() {
 	// 在 Fyne v2 中，應用程式 ID 通過不同的方式設定
 	myApp.SetIcon(nil) // 暫時不設定圖示，後續會添加
 
-	myApp.Settings().SetTheme(&cjkTheme{base: theme.LightTheme()})
+	myApp.Settings().SetTheme(&cjkTheme{base: theme.DarkTheme()})
 
 	// 建立主視窗
 	// 這將建立應用程式的主要使用者介面視窗
-	myWindow := myApp.NewWindow("Mac Notebook App")
+	myWindow := myApp.NewWindow("Mac 加密 Notebook")
 	
 	// 設定視窗的初始大小為 1200x800 像素
 	// 這個大小適合筆記編輯和檔案管理的雙面板佈局
@@ -61,7 +61,7 @@ func main() {
 // 4. 使用垂直佈局組合所有元素
 func createBasicLayout() fyne.CanvasObject {
 	// 建立應用程式標題
-	title := widget.NewLabel("Mac Notebook App")
+	title := widget.NewLabel("Mac 加密 Notebook")
 	title.TextStyle = fyne.TextStyle{Bold: true}
 	
 	// 建立版本資訊
