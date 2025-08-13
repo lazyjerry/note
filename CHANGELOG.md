@@ -9,11 +9,174 @@
 
 ### 🚧 進行中
 
-- 準備開始 Task 5: 建立編輯器服務
+- 準備開始 Task 6: 實作自動保存系統
+
+### ✅ 新增功能
+
+- **Task 5.1: 實作 Markdown 編輯器核心**
+  - 建立 `EditorService` 介面的完整實作 (`editorService`)
+  - 整合 goldmark Markdown 解析器，支援 GitHub Flavored Markdown (GFM)
+  - 實作筆記建立功能：`CreateNote` 生成唯一 ID 和時間戳
+  - 實作筆記開啟功能：`OpenNote` 支援一般和加密檔案識別
+  - 實作筆記保存功能：`SaveNote` 自動生成檔案路徑和副檔名
+  - 實作內容更新功能：`UpdateContent` 即時更新筆記內容
+  - 實作 Markdown 預覽功能：`PreviewMarkdown` 轉換為 HTML
+  - 實作活躍筆記管理：`GetActiveNote`, `CloseNote`, `GetActiveNotes`
+  - 實作檔案名稱清理：`sanitizeFileName` 移除不合法字元
+  - 支援表格、刪除線、任務列表等 Markdown 擴展功能
+  - 支援自動標題 ID 生成和 XHTML 相容性
+
+### 🧪 測試改進
+
+- 新增 `editor_service_test.go` 包含 15+ 個測試函數
+  - 測試編輯器服務建立和初始化
+  - 測試筆記建立、開啟、保存、更新功能
+  - 測試加密檔案識別和處理
+  - 測試 Markdown 預覽的各種語法轉換
+  - 測試表格、任務列表等擴展功能
+  - 測試檔案名稱清理和安全性
+  - 測試活躍筆記管理功能
+  - 測試錯誤處理：不存在檔案、空筆記、無效輸入
+  - 包含模擬檔案系統 (`mockFileRepository`) 用於隔離測試
+
+### 📝 文件更新
+
+- 所有編輯器服務程式碼都包含詳細的繁體中文註解
+- 每個編輯器函數都有完整的參數、回傳值和執行流程說明
+- Markdown 解析器配置包含詳細的功能說明
+- 測試程式碼包含清楚的測試目的和驗證邏輯說明
+
+- **Task 5.2: 整合加密功能到編輯器**
+  - 增強 `EditorService` 整合加密、密碼和生物識別服務
+  - 實作加密檔案的開啟功能：`OpenNote` 支援自動解密流程
+  - 實作加密檔案的保存功能：`SaveNote` 支援自動加密流程
+  - 實作加密狀態管理：`EnableEncryption`, `DisableEncryption`
+  - 實作密碼驗證整合：`DecryptWithPassword`, `EncryptWithPassword`
+  - 實作生物識別驗證整合：支援 Touch ID/Face ID 解密
+  - 實作加密狀態查詢：`IsEncrypted`, `GetEncryptionType`
+  - 實作安全的加密檔案處理：`decryptFileContent`, `encryptFileContent`
+  - 支援多種加密演算法：AES-256 和 ChaCha20-Poly1305
+  - 實作加密檔案的自動識別（.enc 副檔名）
+
+### 🧪 測試改進
+
+- 更新 `editor_service_test.go` 包含 20+ 個測試函數
+  - 新增加密功能測試：`TestEnableEncryption`, `TestDisableEncryption`
+  - 新增加密狀態查詢測試：`TestIsEncrypted`, `TestGetEncryptionType`
+  - 新增加密檔案開啟測試：`TestOpenEncryptedNote`
+  - 更新所有現有測試以支援新的服務架構
+  - 實作完整的模擬服務：`mockEncryptionService`, `mockPasswordService`, `mockBiometricService`
+  - 測試加密檔案的錯誤處理：密碼驗證要求、解密失敗等
+  - 測試加密狀態的正確管理和更新
+
+### 📝 文件更新
+
+- 所有加密整合程式碼都包含詳細的繁體中文註解
+- 每個加密相關函數都有完整的參數、回傳值和執行流程說明
+- 加密檔案處理流程包含詳細的安全性考量說明
+- 生物識別整合包含回退機制的詳細說明
+
+### 🔧 技術改進
+
+- 使用 goldmark 作為高效能 Markdown 解析器
+- 支援 GitHub Flavored Markdown 標準
+- 實作活躍筆記快取機制提高效能
+- 實作安全的檔案名稱處理防止檔案系統錯誤
+- 使用 UUID 生成唯一筆記識別碼
+- 實作完整的錯誤處理和狀態管理
+- 整合多層級安全驗證：密碼 + 生物識別
+- 實作加密檔案的透明處理：自動加密/解密
+- 支援加密狀態的動態切換
+- 實作安全的憑證管理架構（為未來 Keychain 整合做準備）
 
 ### 📋 待辦事項
 
-- [ ] 5. 建立編輯器服務
+- [ ] 6. 實作自動保存系統
+- [ ] 7. 建立 Fyne UI 基礎架構
+- [ ] 8. 實作編輯器 UI 元件
+- [ ] 9. 實作檔案操作 UI
+- [ ] 10. 建立加密 UI 元件
+- [ ] 11. 實作設定管理 UI
+- [ ] 12. 整合所有服務到 UI
+- [ ] 13. 實作錯誤處理和用戶回饋
+- [ ] 14. 效能優化和測試
+- [ ] 15. 應用程式打包和部署
+
+---
+
+## [0.5.0] - 2024-01-XX - 編輯器服務完成
+
+### ✅ 新增功能
+
+- **Task 5.1: 實作 Markdown 編輯器核心**
+
+  - 建立 `EditorService` 介面的完整實作 (`editorService`)
+  - 整合 goldmark Markdown 解析器，支援 GitHub Flavored Markdown (GFM)
+  - 實作筆記建立功能：`CreateNote` 生成唯一 ID 和時間戳
+  - 實作筆記開啟功能：`OpenNote` 支援一般和加密檔案識別
+  - 實作筆記保存功能：`SaveNote` 自動生成檔案路徑和副檔名
+  - 實作內容更新功能：`UpdateContent` 即時更新筆記內容
+  - 實作 Markdown 預覽功能：`PreviewMarkdown` 轉換為 HTML
+  - 實作活躍筆記管理：`GetActiveNote`, `CloseNote`, `GetActiveNotes`
+  - 實作檔案名稱清理：`sanitizeFileName` 移除不合法字元
+  - 支援表格、刪除線、任務列表等 Markdown 擴展功能
+  - 支援自動標題 ID 生成和 XHTML 相容性
+
+- **Task 5.2: 整合加密功能到編輯器**
+  - 增強 `EditorService` 整合加密、密碼和生物識別服務
+  - 實作加密檔案的開啟功能：`OpenNote` 支援自動解密流程
+  - 實作加密檔案的保存功能：`SaveNote` 支援自動加密流程
+  - 實作加密狀態管理：`EnableEncryption`, `DisableEncryption`
+  - 實作密碼驗證整合：`DecryptWithPassword`, `EncryptWithPassword`
+  - 實作生物識別驗證整合：支援 Touch ID/Face ID 解密
+  - 實作加密狀態查詢：`IsEncrypted`, `GetEncryptionType`
+  - 實作安全的加密檔案處理：`decryptFileContent`, `encryptFileContent`
+  - 支援多種加密演算法：AES-256 和 ChaCha20-Poly1305
+  - 實作加密檔案的自動識別（.enc 副檔名）
+
+### 🧪 測試改進
+
+- 新增 `editor_service_test.go` 包含 20+ 個測試函數
+  - 測試編輯器服務建立和初始化
+  - 測試筆記建立、開啟、保存、更新功能
+  - 測試加密檔案識別和處理
+  - 測試 Markdown 預覽的各種語法轉換
+  - 測試表格、任務列表等擴展功能
+  - 測試檔案名稱清理和安全性
+  - 測試活躍筆記管理功能
+  - 測試錯誤處理：不存在檔案、空筆記、無效輸入
+  - 新增加密功能測試：`TestEnableEncryption`, `TestDisableEncryption`
+  - 新增加密狀態查詢測試：`TestIsEncrypted`, `TestGetEncryptionType`
+  - 新增加密檔案開啟測試：`TestOpenEncryptedNote`
+  - 實作完整的模擬服務：`mockEncryptionService`, `mockPasswordService`, `mockBiometricService`
+  - 包含模擬檔案系統 (`mockFileRepository`) 用於隔離測試
+
+### 📝 文件更新
+
+- 所有編輯器服務程式碼都包含詳細的繁體中文註解
+- 每個編輯器函數都有完整的參數、回傳值和執行流程說明
+- Markdown 解析器配置包含詳細的功能說明
+- 測試程式碼包含清楚的測試目的和驗證邏輯說明
+- 所有加密整合程式碼都包含詳細的繁體中文註解
+- 每個加密相關函數都有完整的參數、回傳值和執行流程說明
+- 加密檔案處理流程包含詳細的安全性考量說明
+- 生物識別整合包含回退機制的詳細說明
+
+### 🔧 技術改進
+
+- 使用 goldmark 作為高效能 Markdown 解析器
+- 支援 GitHub Flavored Markdown 標準
+- 實作活躍筆記快取機制提高效能
+- 實作安全的檔案名稱處理防止檔案系統錯誤
+- 使用 UUID 生成唯一筆記識別碼
+- 實作完整的錯誤處理和狀態管理
+- 整合多層級安全驗證：密碼 + 生物識別
+- 實作加密檔案的透明處理：自動加密/解密
+- 支援加密狀態的動態切換
+- 實作安全的憑證管理架構（為未來 Keychain 整合做準備）
+
+### 📋 待辦事項
+
 - [ ] 6. 實作自動保存系統
 - [ ] 7. 建立 Fyne UI 基礎架構
 - [ ] 8. 實作編輯器 UI 元件

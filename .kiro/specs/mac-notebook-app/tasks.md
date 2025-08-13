@@ -137,9 +137,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄 macOS 生物驗證整合，完成 Task 4 並發布 v0.4.0**
     - _需求: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 5. 建立編輯器服務
+- [x] 5. 建立編輯器服務
 
-  - [ ] 5.1 實作 Markdown 編輯器核心
+  - [x] 5.1 實作 Markdown 編輯器核心
 
     - 創建 EditorService 介面實作
     - 整合 goldmark 進行 Markdown 解析
@@ -149,7 +149,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄 Markdown 編輯器核心功能的實作**
     - _需求: 1.1, 1.2, 1.4_
 
-  - [ ] 5.2 整合加密功能到編輯器
+  - [x] 5.2 整合加密功能到編輯器
     - 實作加密檔案的開啟和保存
     - 添加加密狀態的管理
     - 整合密碼和生物驗證流程
