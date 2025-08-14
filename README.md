@@ -1,4 +1,4 @@
-# Mac Notebook App
+# Mac 加密 Notebook
 
 一個使用 Go 和 Fyne 建立的安全 Markdown 筆記應用程式，專為 macOS 設計。
 

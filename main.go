@@ -3,13 +3,13 @@
 package main
 
 import (
-	"fyne.io/fyne/v2"          // Fyne GUI 框架核心套件
-	"fyne.io/fyne/v2/app"      // Fyne 應用程式建立套件
-	"fyne.io/fyne/v2/container" // Fyne 容器佈局套件
-	"fyne.io/fyne/v2/widget"   // Fyne UI 元件套件
-	"fyne.io/fyne/v2/theme"
-	_ "embed"
-	"image/color"
+	"fyne.io/fyne/v2"          // Fyne GUI 框架核心套件，提供基礎介面類型和功能
+	"fyne.io/fyne/v2/app"      // 提供應用程式生命週期管理和視窗創建功能
+	"fyne.io/fyne/v2/container" // 提供各種佈局容器，用於組織和排列 UI 元件
+	"fyne.io/fyne/v2/widget"   // 提供標準 UI 元件如按鈕、標籤、文字框等
+	"fyne.io/fyne/v2/theme"    // 提供主題相關功能，用於自訂 UI 外觀樣式
+	_ "embed"                  // Go 1.16+ 嵌入式檔案支援，用於嵌入字型資源
+	"image/color"              // Go 標準庫，提供顏色定義和處理功能
 )
 
 // main 函數是應用程式的主要入口點

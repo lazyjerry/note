@@ -3,8 +3,9 @@
 package ui
 
 import (
-	"fyne.io/fyne/v2"        // Fyne GUI 框架核心套件
-	"fyne.io/fyne/v2/widget" // Fyne UI 元件套件
+	"fyne.io/fyne/v2"          // Fyne GUI 框架核心套件
+	"fyne.io/fyne/v2/container" // Fyne 容器佈局套件
+	"fyne.io/fyne/v2/widget"   // Fyne UI 元件套件
 )
 
 // MainWindow 代表應用程式的主視窗
@@ -61,7 +62,7 @@ func (mw *MainWindow) setupUI() {
 	placeholder := widget.NewLabel("UI components will be implemented in subsequent tasks")
 	
 	// 建立垂直容器作為主要內容區域
-	mw.content = fyne.NewVBoxContainer(placeholder)
+	mw.content = container.NewVBox(placeholder)
 	
 	// 將內容設定到主視窗
 	mw.window.SetContent(mw.content)

@@ -9,9 +9,38 @@
 
 ### 🚧 進行中
 
-- 準備開始 Task 6: 實作自動保存系統
+- 準備開始 Task 7: 建立 Fyne UI 基礎架構
 
 ### ✅ 新增功能
+
+- **Task 6.1: 建立自動保存服務**
+
+  - 建立 `AutoSaveService` 介面的完整實作 (`AutoSaveServiceImpl`)
+  - 實作定時保存邏輯：`StartAutoSave` 啟動自動保存定時器
+  - 實作保存狀態追蹤：`SaveStatus` 結構體記錄保存狀態和統計
+  - 實作立即保存功能：`SaveNow` 支援手動觸發保存
+  - 實作自動保存管理：`StopAutoSave` 停止定時器並清理資源
+  - 實作狀態查詢功能：`GetSaveStatus`, `GetAllSaveStatuses` 取得保存狀態
+  - 實作服務關閉功能：`Shutdown` 安全關閉所有定時器
+  - 實作執行緒安全的並發存取保護：使用 `sync.RWMutex`
+  - 實作智慧保存邏輯：只保存已修改的筆記，跳過未修改筆記
+  - 實作定時器重新排程：`rescheduleTimer` 自動重設下次保存時間
+  - 實作保存錯誤處理和狀態更新
+  - 實作筆記快取管理：避免重複載入筆記實例
+
+- **Task 6.2: 整合加密檔案自動保存**
+
+  - 增強 `AutoSaveService` 支援加密檔案的背景保存
+  - 實作可配置的保存間隔：`StartAutoSaveWithSettings` 使用設定服務的間隔
+  - 實作加密檔案特殊處理：`getAutoSaveInterval` 為加密檔案增加額外延遲
+  - 實作保存失敗的重試機制：`saveNoteWithRetry` 對加密檔案進行最多 3 次重試
+  - 實作動態間隔更新：`UpdateAutoSaveInterval` 支援運行時調整保存頻率
+  - 實作加密檔案統計：`GetEncryptedFileCount` 追蹤加密檔案數量
+  - 實作延遲配置：`SetEncryptedBackoff` 動態調整加密檔案的額外延遲
+  - 實作設定服務整合：支援從 `SettingsService` 載入使用者配置的間隔
+  - 實作錯誤分類：區分一般保存錯誤和加密檔案特定錯誤
+  - 實作向後相容：`NewAutoSaveServiceWithDefaults` 支援無設定服務的使用
+  - 實作智慧延遲：加密檔案自動增加 30 秒延遲以減少加密操作頻率
 
 - **Task 5.1: 實作 Markdown 編輯器核心**
   - 建立 `EditorService` 介面的完整實作 (`editorService`)
@@ -27,6 +56,27 @@
   - 支援自動標題 ID 生成和 XHTML 相容性
 
 ### 🧪 測試改進
+
+- 新增 `auto_save_service_test.go` 包含 15+ 個測試函數
+
+  - 測試自動保存服務建立和初始化：`TestNewAutoSaveService`
+  - 測試自動保存啟動和停止：`TestStartAutoSave`, `TestStopAutoSave`
+  - 測試立即保存功能：`TestSaveNow`, `TestSaveNowWithNonExistentNote`
+  - 測試並發保存防護：`TestSaveNowWithSaveInProgress`
+  - 測試自動保存觸發：`TestAutoSaveWithModifiedNote`, `TestAutoSaveWithUnmodifiedNote`
+  - 測試狀態查詢功能：`TestGetSaveStatus`, `TestGetAllSaveStatuses`
+  - 測試服務關閉：`TestShutdown`
+  - 測試錯誤處理：`TestSaveErrorHandling`
+  - 測試並發自動保存：`TestConcurrentAutoSave`
+  - 測試定時器重新排程：`TestRescheduleTimer`
+  - 實作完整的模擬編輯器服務：`MockEditorService` 支援保存延遲和錯誤模擬
+  - 包含執行緒安全性測試和效能測試
+  - 新增加密檔案專用測試：`TestEncryptedFileAutoSave`, `TestEncryptedFileRetryMechanism`
+  - 新增設定服務整合測試：`TestStartAutoSaveWithSettings`, `TestAutoSaveWithSettingsLoadError`
+  - 新增動態配置測試：`TestUpdateAutoSaveInterval`, `TestSetEncryptedBackoff`
+  - 新增統計功能測試：`TestGetEncryptedFileCount`
+  - 實作完整的模擬設定服務：`MockSettingsService` 支援設定載入和錯誤模擬
+  - 包含加密檔案重試機制的詳細測試和錯誤處理驗證
 
 - 新增 `editor_service_test.go` 包含 15+ 個測試函數
   - 測試編輯器服務建立和初始化
@@ -91,7 +141,91 @@
 
 ### 📋 待辦事項
 
-- [ ] 6. 實作自動保存系統
+- [ ] 7. 建立 Fyne UI 基礎架構
+- [ ] 8. 實作編輯器 UI 元件
+- [ ] 9. 實作檔案操作 UI
+- [ ] 10. 建立加密 UI 元件
+- [ ] 11. 實作設定管理 UI
+- [ ] 12. 整合所有服務到 UI
+- [ ] 13. 實作錯誤處理和用戶回饋
+- [ ] 14. 效能優化和測試
+- [ ] 15. 應用程式打包和部署
+
+---
+
+## [0.6.0] - 2024-01-XX - 自動保存系統完成
+
+### ✅ 新增功能
+
+- **Task 6.1: 建立自動保存服務**
+
+  - 建立 `AutoSaveService` 介面的完整實作 (`AutoSaveServiceImpl`)
+  - 實作定時保存邏輯：`StartAutoSave` 啟動自動保存定時器
+  - 實作保存狀態追蹤：`SaveStatus` 結構體記錄保存狀態和統計
+  - 實作立即保存功能：`SaveNow` 支援手動觸發保存
+  - 實作自動保存管理：`StopAutoSave` 停止定時器並清理資源
+  - 實作狀態查詢功能：`GetSaveStatus`, `GetAllSaveStatuses` 取得保存狀態
+  - 實作服務關閉功能：`Shutdown` 安全關閉所有定時器
+  - 實作執行緒安全的並發存取保護：使用 `sync.RWMutex`
+  - 實作智慧保存邏輯：只保存已修改的筆記，跳過未修改筆記
+  - 實作定時器重新排程：`rescheduleTimer` 自動重設下次保存時間
+  - 實作保存錯誤處理和狀態更新
+  - 實作筆記快取管理：避免重複載入筆記實例
+
+- **Task 6.2: 整合加密檔案自動保存**
+  - 增強 `AutoSaveService` 支援加密檔案的背景保存
+  - 實作可配置的保存間隔：`StartAutoSaveWithSettings` 使用設定服務的間隔
+  - 實作加密檔案特殊處理：`getAutoSaveInterval` 為加密檔案增加額外延遲
+  - 實作保存失敗的重試機制：`saveNoteWithRetry` 對加密檔案進行最多 3 次重試
+  - 實作動態間隔更新：`UpdateAutoSaveInterval` 支援運行時調整保存頻率
+  - 實作加密檔案統計：`GetEncryptedFileCount` 追蹤加密檔案數量
+  - 實作延遲配置：`SetEncryptedBackoff` 動態調整加密檔案的額外延遲
+  - 實作設定服務整合：支援從 `SettingsService` 載入使用者配置的間隔
+  - 實作錯誤分類：區分一般保存錯誤和加密檔案特定錯誤
+  - 實作向後相容：`NewAutoSaveServiceWithDefaults` 支援無設定服務的使用
+  - 實作智慧延遲：加密檔案自動增加 30 秒延遲以減少加密操作頻率
+
+### 🧪 測試改進
+
+- 新增 `auto_save_service_test.go` 包含 20+ 個測試函數
+  - 測試自動保存服務建立和初始化：`TestNewAutoSaveService`
+  - 測試自動保存啟動和停止：`TestStartAutoSave`, `TestStopAutoSave`
+  - 測試立即保存功能：`TestSaveNow`, `TestSaveNowWithNonExistentNote`
+  - 測試並發保存防護：`TestSaveNowWithSaveInProgress`
+  - 測試自動保存觸發：`TestAutoSaveWithModifiedNote`, `TestAutoSaveWithUnmodifiedNote`
+  - 測試狀態查詢功能：`TestGetSaveStatus`, `TestGetAllSaveStatuses`
+  - 測試服務關閉：`TestShutdown`
+  - 測試錯誤處理：`TestSaveErrorHandling`
+  - 測試並發自動保存：`TestConcurrentAutoSave`
+  - 測試定時器重新排程：`TestRescheduleTimer`
+  - 新增加密檔案專用測試：`TestEncryptedFileAutoSave`, `TestEncryptedFileRetryMechanism`
+  - 新增設定服務整合測試：`TestStartAutoSaveWithSettings`, `TestAutoSaveWithSettingsLoadError`
+  - 新增動態配置測試：`TestUpdateAutoSaveInterval`, `TestSetEncryptedBackoff`
+  - 新增統計功能測試：`TestGetEncryptedFileCount`
+  - 實作完整的模擬編輯器服務：`MockEditorService` 支援保存延遲和錯誤模擬
+  - 實作完整的模擬設定服務：`MockSettingsService` 支援設定載入和錯誤模擬
+  - 包含執行緒安全性測試、效能測試和加密檔案重試機制的詳細測試
+
+### 📝 文件更新
+
+- 所有自動保存服務程式碼都包含詳細的繁體中文註解
+- 每個自動保存函數都有完整的參數、回傳值和執行流程說明
+- 加密檔案處理邏輯包含詳細的重試機制和錯誤處理說明
+- 設定服務整合包含回退機制的詳細說明
+
+### 🔧 技術改進
+
+- 實作高效能的定時器管理系統
+- 使用執行緒安全的並發存取保護
+- 實作智慧保存邏輯，避免不必要的保存操作
+- 支援動態配置和運行時調整
+- 實作完整的錯誤處理和重試機制
+- 整合設定服務，支援使用者自訂保存間隔
+- 針對加密檔案優化保存頻率，減少加密操作負載
+- 實作資源管理和服務生命週期控制
+
+### 📋 待辦事項
+
 - [ ] 7. 建立 Fyne UI 基礎架構
 - [ ] 8. 實作編輯器 UI 元件
 - [ ] 9. 實作檔案操作 UI
@@ -433,20 +567,22 @@
 
 ## 專案統計
 
-### 📊 程式碼統計 (截至 v0.3.0)
+### 📊 程式碼統計 (截至 v0.6.0)
 
-- **總檔案數**: 15+ 個 Go 檔案
-- **程式碼行數**: 2000+ 行 (包含註解)
-- **測試檔案**: 4 個
-- **測試函數**: 35+ 個
-- **測試覆蓋率**: 高 (包含正常情況、邊界條件、錯誤處理)
+- **總檔案數**: 20+ 個 Go 檔案
+- **程式碼行數**: 4000+ 行 (包含註解)
+- **測試檔案**: 7 個
+- **測試函數**: 70+ 個
+- **測試覆蓋率**: 高 (包含正常情況、邊界條件、錯誤處理、並發測試)
 
 ### 🏗️ 架構完成度
 
 - ✅ **資料層 (Models)**: 100% 完成
 - ✅ **儲存庫層 (Repositories)**: 檔案操作 100% 完成
 - ✅ **服務層 (Services)**: 檔案管理 100% 完成
-- 🚧 **服務層 (Services)**: 加密服務 0% 完成
+- ✅ **服務層 (Services)**: 加密服務 100% 完成
+- ✅ **服務層 (Services)**: 編輯器服務 100% 完成
+- ✅ **服務層 (Services)**: 自動保存服務 100% 完成
 - 🚧 **使用者介面層 (UI)**: 0% 完成
 
 ### 🎯 里程碑達成
@@ -454,10 +590,11 @@
 - [x] **里程碑 1**: 專案基礎架構 (v0.1.0)
 - [x] **里程碑 2**: 核心資料模型 (v0.2.0)
 - [x] **里程碑 3**: 檔案系統操作 (v0.3.0)
-- [ ] **里程碑 4**: 加密和安全功能
-- [ ] **里程碑 5**: 編輯器核心功能
-- [ ] **里程碑 6**: 使用者介面
-- [ ] **里程碑 7**: 完整應用程式
+- [x] **里程碑 4**: 加密和安全功能 (v0.4.0)
+- [x] **里程碑 5**: 編輯器核心功能 (v0.5.0)
+- [x] **里程碑 6**: 自動保存系統 (v0.6.0)
+- [ ] **里程碑 7**: 使用者介面
+- [ ] **里程碑 8**: 完整應用程式
 
 ---
 

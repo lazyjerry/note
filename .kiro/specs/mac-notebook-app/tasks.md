@@ -144,7 +144,7 @@ func FunctionName(param1 string, param2 int) error {
     - 創建 EditorService 介面實作
     - 整合 goldmark 進行 Markdown 解析
     - 實作即時預覽功能
-    - 編寫編輯器功能的單元測試
+    - 編寫編輯器功能的單元測試ㄈ
     - **為所有程式碼添加詳細的繁體中文註解和流程說明**
     - **更新 CHANGELOG.md 記錄 Markdown 編輯器核心功能的實作**
     - _需求: 1.1, 1.2, 1.4_
@@ -158,9 +158,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄編輯器加密功能整合，完成 Task 5 並發布 v0.5.0**
     - _需求: 4.5, 5.4_
 
-- [ ] 6. 實作自動保存系統
+- [x] 6. 實作自動保存系統
 
-  - [ ] 6.1 建立自動保存服務
+  - [x] 6.1 建立自動保存服務
 
     - 創建 AutoSaveService 介面實作
     - 實作定時保存邏輯
@@ -170,7 +170,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄自動保存服務的實作**
     - _需求: 7.1, 7.3, 7.4_
 
-  - [ ] 6.2 整合加密檔案自動保存
+  - [x] 6.2 整合加密檔案自動保存
     - 實作加密檔案的背景保存
     - 添加保存失敗的錯誤處理
     - 實作可配置的保存間隔
