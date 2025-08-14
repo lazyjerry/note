@@ -9,9 +9,50 @@
 
 ### 🚧 進行中
 
-- 準備開始 Task 8: 實作編輯器 UI 元件
+- Task 8 已完成，準備開始 Task 9: 實作檔案操作 UI
 
 ### ✅ 新增功能
+
+- **Task 8.1: 建立 Markdown 編輯器界面**
+
+  - 建立完整的 `MarkdownEditor` UI 元件，提供專業的 Markdown 編輯體驗
+  - 實作文字編輯器元件：`createTextEditor` 建立多行文字輸入，支援自動換行和滾動
+  - 實作編輯器工具欄：`createToolbar` 包含 Markdown 格式化按鈕和常用功能
+  - 實作標題格式化：支援 H1、H2、H3 標題的快速插入
+  - 實作文字格式化：支援粗體、斜體、刪除線的快速包圍選取
+  - 實作列表功能：支援無序列表和有序列表的快速插入
+  - 實作連結和圖片：支援 Markdown 連結和圖片語法的快速插入
+  - 實作程式碼區塊：支援行內程式碼和程式碼區塊的快速插入
+  - 實作筆記管理：`LoadNote`, `CreateNewNote`, `SaveNote` 完整的筆記生命週期管理
+  - 實作內容操作：`GetContent`, `SetContent`, `Clear` 靈活的內容管理
+  - 實作狀態管理：`IsModified`, `CanSave` 智慧的編輯狀態追蹤
+  - 實作回調系統：`SetOnContentChanged`, `SetOnSaveRequested`, `SetOnWordCountChanged` 事件驅動架構
+  - 實作字數統計：`updateWordCount` 即時計算和更新字數統計
+  - 實作狀態顯示：`updateStatus` 即時顯示編輯器狀態和操作回饋
+  - 整合編輯器服務：完整整合 `EditorService` 提供筆記的建立、載入、保存功能
+  - 實作智慧插入：`insertMarkdown`, `wrapSelection` 支援游標位置的智慧 Markdown 語法插入
+  - 實作標題管理：`GetTitle`, `SetTitle` 支援筆記標題的動態管理
+
+- **Task 8.2: 實作即時預覽面板**
+
+  - 建立完整的 `MarkdownPreview` UI 元件，提供專業的 Markdown 即時預覽體驗
+  - 實作預覽工具欄：`createToolbar` 包含刷新、自動刷新、同步滾動、匯出等控制功能
+  - 實作 HTML 預覽顯示：`createPreviewArea` 使用 RichText 元件支援富文本顯示和滾動
+  - 實作即時預覽更新：`UpdatePreview` 自動檢測內容變更並即時更新預覽
+  - 實作手動刷新功能：`RefreshPreview` 支援強制重新渲染預覽內容
+  - 實作自動刷新控制：`SetAutoRefresh`, `IsAutoRefreshEnabled` 智慧的自動更新管理
+  - 實作預覽可見性控制：`SetVisible`, `IsVisible`, `ToggleVisibility` 靈活的顯示管理
+  - 實作 HTML 匯出功能：`exportHTML`, `copyHTML` 支援完整 HTML 文件匯出和複製
+  - 實作內容統計功能：`GetWordCount`, `GetCharacterCount` 即時字數和字元統計
+  - 實作預覽狀態管理：`updateStatus` 即時顯示預覽狀態和操作回饋
+  - 實作完整 HTML 文件生成：`createFullHTMLDocument` 包含 CSS 樣式的完整 HTML 結構
+  - 實作滾動同步架構：`SyncScrollPosition`, `GetScrollPosition` 為未來同步滾動功能預留介面
+  - 實作主題設定架構：`SetTheme` 為未來主題切換功能預留介面
+  - 建立整合編輯器預覽元件：`EditorWithPreview` 完整整合編輯器和預覽面板
+  - 實作內容同步機制：編輯器內容變更自動觸發預覽更新
+  - 實作分割佈局管理：`SetSplitRatio`, `GetSplitRatio` 動態調整編輯器和預覽面板比例
+  - 實作統一狀態管理：整合編輯器和預覽面板的狀態，提供統一的操作介面
+  - 實作回調事件系統：`SetOnPreviewToggled` 支援預覽切換事件的外部處理
 
 - **Task 7.1: 創建主視窗結構**
 
@@ -87,6 +128,54 @@
 
 ### 🧪 測試改進
 
+- 新增 `editor_test.go` 包含 10 個測試函數
+
+  - 測試 Markdown 編輯器建立和初始化：`TestNewMarkdownEditor`
+  - 測試文字編輯器配置：`TestMarkdownEditorTextEditor` 驗證多行模式、自動換行、佔位文字
+  - 測試新筆記建立：`TestMarkdownEditorCreateNewNote` 驗證筆記建立和載入流程
+  - 測試筆記載入：`TestMarkdownEditorLoadNote` 驗證現有筆記的載入和狀態管理
+  - 測試筆記保存：`TestMarkdownEditorSaveNote` 驗證保存功能和狀態重置
+  - 測試保存錯誤處理：`TestMarkdownEditorSaveNoteWithoutCurrentNote` 驗證無筆記時的錯誤處理
+  - 測試內容操作：`TestMarkdownEditorContentOperations` 驗證內容設定、取得、清空功能
+  - 測試標題操作：`TestMarkdownEditorTitleOperations` 驗證標題設定和取得功能
+  - 測試保存能力檢查：`TestMarkdownEditorCanSave` 驗證保存條件判斷邏輯
+  - 測試回調函數：`TestMarkdownEditorCallbacks` 驗證事件回調系統
+  - 測試容器取得：`TestMarkdownEditorGetContainer` 驗證 UI 容器存取
+  - 實作完整的模擬編輯器服務：`mockEditorService` 支援所有編輯器操作的模擬
+  - 涵蓋正常情況、錯誤處理、狀態管理和回調系統的完整測試
+
+- 新增 `preview_test.go` 包含 12 個測試函數
+
+  - 測試 Markdown 預覽面板建立和初始化：`TestNewMarkdownPreview`
+  - 測試預覽內容更新：`TestMarkdownPreviewUpdatePreview` 驗證內容更新、空內容處理、重複內容處理
+  - 測試手動刷新功能：`TestMarkdownPreviewRefreshPreview` 驗證有無內容時的刷新行為
+  - 測試自動刷新功能：`TestMarkdownPreviewAutoRefresh` 驗證自動刷新的啟用、停用和切換
+  - 測試可見性控制：`TestMarkdownPreviewVisibility` 驗證預覽面板的顯示和隱藏功能
+  - 測試可見性回調：`TestMarkdownPreviewVisibilityCallback` 驗證可見性變更回調的觸發
+  - 測試內容操作：`TestMarkdownPreviewContentOperations` 驗證內容取得、清空、檢查功能
+  - 測試字數統計：`TestMarkdownPreviewWordCount` 驗證字數和字元統計的準確性
+  - 測試 HTML 匯出：`TestMarkdownPreviewHTMLExport` 驗證 HTML 匯出和文件結構生成
+  - 測試 HTML 複製：`TestMarkdownPreviewCopyHTML` 驗證 HTML 複製功能
+  - 測試滾動同步：`TestMarkdownPreviewScrollSync` 驗證滾動同步功能（佔位實作）
+  - 測試主題設定：`TestMarkdownPreviewThemeAndSettings` 驗證主題和設定功能（佔位實作）
+  - 實作完整的模擬編輯器服務：`mockEditorServiceForPreview` 支援 Markdown 預覽轉換
+  - 涵蓋正常情況、錯誤處理、狀態管理和未來功能的完整測試
+
+- 新增 `editor_with_preview_test.go` 包含 11 個測試函數
+
+  - 測試整合元件建立和初始化：`TestNewEditorWithPreview`
+  - 測試新筆記建立：`TestEditorWithPreviewCreateNewNote` 驗證整合元件的筆記建立流程
+  - 測試筆記載入：`TestEditorWithPreviewLoadNote` 驗證筆記載入和內容同步
+  - 測試內容同步：`TestEditorWithPreviewContentSync` 驗證編輯器和預覽面板的即時同步
+  - 測試筆記保存：`TestEditorWithPreviewSaveNote` 驗證整合元件的保存功能
+  - 測試預覽切換：`TestEditorWithPreviewPreviewToggle` 驗證預覽面板的顯示切換
+  - 測試分割比例：`TestEditorWithPreviewSplitRatio` 驗證編輯器和預覽面板的分割比例控制
+  - 測試自動刷新：`TestEditorWithPreviewAutoRefresh` 驗證整合元件的自動刷新功能
+  - 測試內容清空：`TestEditorWithPreviewClearContent` 驗證整合清空功能
+  - 測試回調函數：`TestEditorWithPreviewCallbacks` 驗證整合元件的事件回調系統
+  - 測試子元件存取：`TestEditorWithPreviewSubComponents` 驗證編輯器和預覽面板的直接存取
+  - 涵蓋整合功能、狀態同步、事件處理和元件協作的完整測試
+
 - 新增 `main_window_test.go` 包含 5 個測試函數
 
   - 測試主視窗建立和初始化：`TestNewMainWindow`
@@ -144,6 +233,21 @@
   - 包含模擬檔案系統 (`mockFileRepository`) 用於隔離測試
 
 ### 📝 文件更新
+
+- 所有 Markdown 編輯器 UI 程式碼都包含詳細的繁體中文註解
+- 每個編輯器方法都有完整的參數、回傳值和執行流程說明
+- 工具欄建立和 Markdown 格式化功能包含詳細的操作說明
+- 筆記管理和狀態追蹤邏輯包含清楚的流程說明
+- 回調系統和事件處理包含詳細的架構說明
+- 測試程式碼包含清楚的測試目的和驗證邏輯說明
+
+- 所有 Markdown 預覽面板 UI 程式碼都包含詳細的繁體中文註解
+- 每個預覽方法都有完整的參數、回傳值和執行流程說明
+- 工具欄建立和預覽控制功能包含詳細的操作說明
+- HTML 匯出和文件生成邏輯包含清楚的結構說明
+- 整合元件的事件連接和狀態同步包含詳細的架構說明
+- 分割佈局和可見性控制包含清楚的實作說明
+- 測試程式碼包含清楚的測試目的和驗證邏輯說明
 
 - 所有主視窗 UI 程式碼都包含詳細的繁體中文註解
 - 每個 UI 建立函數都有完整的參數、回傳值和執行流程說明

@@ -200,9 +200,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄檔案樹狀視圖實作，完成 Task 7 並發布 v0.7.0**
     - _需求: 3.1, 3.2_
 
-- [ ] 8. 實作編輯器 UI 元件
+- [x] 8. 實作編輯器 UI 元件
 
-  - [ ] 8.1 建立 Markdown 編輯器界面
+  - [x] 8.1 建立 Markdown 編輯器界面
 
     - 創建文字編輯器元件
     - 實作語法高亮顯示
@@ -212,7 +212,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄 Markdown 編輯器界面的實作**
     - _需求: 1.1, 1.2_
 
-  - [ ] 8.2 實作即時預覽面板
+  - [x] 8.2 實作即時預覽面板
     - 創建 Markdown 預覽元件
     - 實作預覽內容的即時更新
     - 添加預覽和編輯的同步滾動
