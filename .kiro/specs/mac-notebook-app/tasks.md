@@ -221,9 +221,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄即時預覽面板實作，完成 Task 8 並發布 v0.8.0**
     - _需求: 1.2_
 
-- [ ] 9. 實作檔案操作 UI
+- [x] 9. 實作檔案操作 UI
 
-  - [ ] 9.1 建立檔案對話框
+  - [x] 9.1 建立檔案對話框
 
     - 實作檔案保存對話框
     - 創建檔案開啟對話框
@@ -233,7 +233,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄檔案對話框的實作**
     - _需求: 2.1, 2.2, 2.4_
 
-  - [ ] 9.2 實作拖拽功能
+  - [x] 9.2 實作拖拽功能
     - 添加檔案拖拽支援
     - 實作拖拽視覺回饋
     - 整合拖拽到檔案管理服務

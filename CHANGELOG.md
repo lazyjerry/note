@@ -9,9 +9,41 @@
 
 ### 🚧 進行中
 
-- Task 8 已完成，準備開始 Task 9: 實作檔案操作 UI
+- Task 9 已完成，準備開始 Task 10: 建立加密 UI 元件
 
 ### ✅ 新增功能
+
+- **Task 9.1: 建立檔案對話框**
+
+  - 建立完整的 `FileDialogManager` 檔案對話框管理器，提供統一的檔案操作介面
+  - 實作檔案開啟對話框：`ShowOpenDialog` 支援 Markdown 和文字檔案的選擇
+  - 實作檔案保存對話框：`ShowSaveDialog` 自動添加 .md 副檔名並驗證檔案類型
+  - 實作另存新檔對話框：`ShowSaveAsDialog` 從現有檔案路徑提取預設名稱
+  - 實作檔案類型過濾器：`createFileFilter` 支援 .md、.txt、.markdown 檔案類型
+  - 實作檔案類型驗證：`isValidFileType` 大小寫不敏感的副檔名檢查
+  - 實作自訂對話框配置：`FileDialogConfig` 支援標題、預設名稱、位置和檔案類型設定
+  - 實作自訂開啟對話框：`ShowCustomOpenDialog` 支援多選和自訂檔案類型
+  - 實作自訂保存對話框：`ShowCustomSaveDialog` 支援完全自訂的保存選項
+  - 實作檔案類型錯誤處理：`FileTypeError` 提供詳細的錯誤訊息和檔案路徑
+  - 實作智慧檔案名稱處理：自動添加副檔名、路徑提取、檔案名稱清理
+  - 整合 Fyne 對話框系統：使用原生檔案對話框提供最佳使用者體驗
+  - 支援回調函數架構：靈活的事件處理和錯誤回報機制
+
+- **Task 9.2: 實作拖拽功能**
+
+  - 建立完整的 `DragDropManager` 拖拽管理器，提供檔案拖拽的核心功能
+  - 實作拖拽區域管理：`RegisterDropZone`, `UnregisterDropZone` 動態註冊和移除拖拽區域
+  - 實作拖拽區域控制：`EnableZone`, `DisableZone` 靈活控制拖拽區域的啟用狀態
+  - 實作檔案類型驗證：`IsValidFileType` 支援自訂檔案類型過濾和大小寫不敏感檢查
+  - 實作拖拽事件處理：`handleDragEnter`, `handleDragLeave`, `handleDrop` 完整的拖拽生命週期
+  - 實作視覺回饋系統：`DragFeedback` 提供拖拽過程中的即時視覺指示
+  - 實作拖拽操作驗證：`ValidateDropOperation` 防止無效的拖拽操作（循環移動、相同路徑等）
+  - 實作拖拽輔助工具：`DragDropHelper` 提供拖拽區域和控制項的快速建立
+  - 實作多種拖拽操作類型：支援移動、複製、連結等不同的拖拽操作模式
+  - 整合檔案管理服務：自動執行檔案移動操作並處理目錄和檔案的不同情況
+  - 實作錯誤處理機制：完整的錯誤回報和回調系統，支援自訂錯誤處理
+  - 實作回調函數架構：`SetCallbacks` 支援檔案拖拽完成、移動完成和錯誤處理的事件通知
+  - 支援跨平台拖拽架構：為未來的原生拖拽支援預留擴展介面
 
 - **Task 8.1: 建立 Markdown 編輯器界面**
 
@@ -128,6 +160,34 @@
 
 ### 🧪 測試改進
 
+- 新增 `drag_drop_test.go` 包含 10 個測試函數
+
+  - 測試拖拽管理器建立：`TestNewDragDropManager` 驗證管理器正確初始化
+  - 測試拖拽區域註冊：`TestDragDropManager_RegisterDropZone` 驗證區域註冊和屬性設定
+  - 測試拖拽區域取消註冊：`TestDragDropManager_UnregisterDropZone` 驗證區域移除功能
+  - 測試回調函數設定：`TestDragDropManager_SetCallbacks` 驗證事件回調系統
+  - 測試區域啟用停用：`TestDragDropManager_EnableDisableZone` 驗證區域狀態控制
+  - 測試檔案類型驗證：`TestDragDropManager_IsValidFileType` 測試檔案過濾功能
+  - 測試拖拽處理邏輯：`TestDragDropManager_HandleDrop` 測試完整的拖拽操作流程
+  - 測試視覺回饋系統：`TestNewDragFeedback`, `TestDragFeedback_ShowHide` 驗證拖拽視覺指示
+  - 測試輔助工具功能：`TestDragDropHelper_CreateFileDropZone`, `TestDragDropHelper_CreateDragHandle`
+  - 測試操作驗證邏輯：`TestDragDropHelper_ValidateDropOperation` 測試拖拽操作的有效性檢查
+  - 包含效能測試：`BenchmarkDragDropManager_IsValidFileType`, `BenchmarkDragDropHelper_ValidateDropOperation`
+  - 實作完整的模擬檔案管理服務：`MockFileManagerService` 支援拖拽操作測試
+  - 涵蓋正常情況、錯誤處理、邊界條件和檔案操作整合測試
+
+- 新增 `file_dialogs_test.go` 包含 6 個測試函數
+
+  - 測試檔案對話框管理器建立：`TestNewFileDialogManager` 驗證管理器正確初始化
+  - 測試檔案類型驗證：`TestFileDialogManager_isValidFileType` 測試各種副檔名的驗證結果
+  - 測試自訂檔案類型驗證：`TestFileDialogManager_isValidFileTypeCustom` 測試自訂類型列表驗證
+  - 測試檔案類型錯誤：`TestFileTypeError` 驗證錯誤結構的建立和方法
+  - 測試對話框配置：`TestFileDialogConfig` 驗證配置結構的欄位設定
+  - 包含效能測試：`BenchmarkFileTypeValidation`, `BenchmarkCustomFileTypeValidation`
+  - 涵蓋正常情況、邊界條件、錯誤處理和大小寫不敏感測試
+  - 測試案例包含 Markdown、文字檔案、不支援類型、空路徑等情況
+  - 實作完整的單元測試，避免 GUI 執行緒問題
+
 - 新增 `editor_test.go` 包含 10 個測試函數
 
   - 測試 Markdown 編輯器建立和初始化：`TestNewMarkdownEditor`
@@ -233,6 +293,18 @@
   - 包含模擬檔案系統 (`mockFileRepository`) 用於隔離測試
 
 ### 📝 文件更新
+
+- 所有拖拽功能程式碼都包含詳細的繁體中文註解
+- 每個拖拽方法都有完整的參數、回傳值和執行流程說明
+- 拖拽事件處理和視覺回饋邏輯包含詳細的實作說明
+- 檔案操作整合和錯誤處理包含清楚的流程說明
+- 測試程式碼包含清楚的測試目的和驗證邏輯說明
+
+- 所有檔案對話框程式碼都包含詳細的繁體中文註解
+- 每個對話框方法都有完整的參數、回傳值和執行流程說明
+- 檔案類型驗證和錯誤處理邏輯包含詳細的實作說明
+- 回調函數架構和事件處理包含清楚的使用說明
+- 測試程式碼包含清楚的測試目的和驗證邏輯說明
 
 - 所有 Markdown 編輯器 UI 程式碼都包含詳細的繁體中文註解
 - 每個編輯器方法都有完整的參數、回傳值和執行流程說明
