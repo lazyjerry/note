@@ -242,9 +242,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄拖拽功能實作，完成 Task 9 並發布 v0.9.0**
     - _需求: 3.3_
 
-- [ ] 10. 建立加密 UI 元件
+- [x] 10. 建立加密 UI 元件
 
-  - [ ] 10.1 實作密碼輸入對話框
+  - [x] 10.1 實作密碼輸入對話框
 
     - 創建密碼設定對話框
     - 實作密碼驗證對話框
@@ -254,7 +254,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄密碼輸入對話框的實作**
     - _需求: 4.1, 4.3_
 
-  - [ ] 10.2 整合生物驗證 UI
+  - [x] 10.2 整合生物驗證 UI
     - 實作生物驗證提示對話框
     - 添加驗證狀態顯示
     - 整合回退到密碼驗證
