@@ -179,9 +179,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄加密檔案自動保存整合，完成 Task 6 並發布 v0.6.0**
     - _需求: 7.2, 7.5, 7.6_
 
-- [ ] 7. 建立 Fyne UI 基礎架構
+- [x] 7. 建立 Fyne UI 基礎架構
 
-  - [ ] 7.1 創建主視窗結構
+  - [x] 7.1 創建主視窗結構
 
     - 實作 MainWindow 和基本佈局
     - 創建選單欄和工具欄
@@ -191,7 +191,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄主視窗結構的實作**
     - _需求: 1.1, 2.2_
 
-  - [ ] 7.2 實作檔案樹狀視圖
+  - [x] 7.2 實作檔案樹狀視圖
     - 創建檔案瀏覽器元件
     - 實作檔案和資料夾的顯示
     - 添加右鍵選單功能
