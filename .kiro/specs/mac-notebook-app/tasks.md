@@ -263,7 +263,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄生物驗證 UI 整合，完成 Task 10 並發布 v0.10.0**
     - _需求: 5.2, 5.3, 5.5_
 
-- [ ] 11. 實作設定管理 UI
+- [-] 11. 實作設定管理 UI
 
   - [ ] 11.1 建立設定對話框
 
