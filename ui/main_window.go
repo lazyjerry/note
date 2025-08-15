@@ -8,6 +8,9 @@ import (
 	"fyne.io/fyne/v2/container" // Fyne 容器佈局套件
 	"fyne.io/fyne/v2/widget"   // Fyne UI 元件套件
 	"fyne.io/fyne/v2/theme"    // Fyne 主題套件
+
+	"mac-notebook-app/internal/models"
+	"mac-notebook-app/internal/services"
 )
 
 // MainWindow 代表應用程式的主視窗
@@ -29,20 +32,28 @@ type MainWindow struct {
 	leftPanel    *fyne.Container  // 左側面板（檔案樹和筆記列表）
 	rightPanel   *fyne.Container  // 右側面板（編輯器和預覽）
 	mainSplit    *container.Split // 主要分割容器
+
+	// 服務和設定
+	app          fyne.App                 // Fyne 應用程式實例
+	settings     *models.Settings         // 應用程式設定
+	themeService *services.ThemeService   // 主題管理服務
 }
 
 // NewMainWindow 建立新的主視窗實例
-// 參數：app（Fyne 應用程式實例）
+// 參數：
+//   - app: Fyne 應用程式實例
+//   - settings: 應用程式設定
 // 回傳：指向新建立的 MainWindow 的指標
 //
 // 執行流程：
 // 1. 建立新的視窗並設定標題和基本屬性
 // 2. 設定視窗的初始大小和位置
 // 3. 建立 MainWindow 結構體實例
-// 4. 初始化所有 UI 元件（選單、工具欄、狀態欄）
-// 5. 設定主要佈局結構
-// 6. 回傳完整配置的主視窗實例
-func NewMainWindow(app fyne.App) *MainWindow {
+// 4. 初始化主題服務
+// 5. 初始化所有 UI 元件（選單、工具欄、狀態欄）
+// 6. 設定主要佈局結構
+// 7. 回傳完整配置的主視窗實例
+func NewMainWindow(app fyne.App, settings *models.Settings) *MainWindow {
 	// 建立新視窗並設定標題
 	window := app.NewWindow("Mac Notebook App - 安全筆記編輯器")
 	
@@ -55,8 +66,13 @@ func NewMainWindow(app fyne.App) *MainWindow {
 	
 	// 建立 MainWindow 實例
 	mw := &MainWindow{
-		window: window, // 設定視窗實例
+		window:   window,   // 設定視窗實例
+		app:      app,      // 設定應用程式實例
+		settings: settings, // 設定應用程式設定
 	}
+
+	// 初始化主題服務
+	mw.themeService = services.NewThemeService(app, settings)
 	
 	// 初始化使用者介面元件
 	mw.setupUI()
@@ -79,6 +95,7 @@ func NewMainWindow(app fyne.App) *MainWindow {
 // 3. 建立狀態欄和狀態指示器
 // 4. 建立主要內容區域的佈局結構
 // 5. 組合所有元件到主視窗中
+// 6. 設定主題監聽器
 func (mw *MainWindow) setupUI() {
 	// 建立選單欄
 	mw.createMenuBar()
@@ -94,6 +111,9 @@ func (mw *MainWindow) setupUI() {
 	
 	// 組合所有元件到主視窗
 	mw.assembleMainLayout()
+
+	// 設定主題監聽器
+	mw.SetupThemeListener()
 }
 
 // Show 顯示主視窗
@@ -145,8 +165,7 @@ func (mw *MainWindow) createMenuBar() {
 		}),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("設定", func() {
-			// TODO: 實作設定對話框
-			fmt.Println("設定對話框將在後續任務中實作")
+			mw.showSettingsDialog()
 		}),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("結束", func() {
@@ -253,8 +272,7 @@ func (mw *MainWindow) createToolBar() {
 		
 		// 設定按鈕
 		widget.NewToolbarAction(theme.SettingsIcon(), func() {
-			// TODO: 實作設定對話框
-			fmt.Println("設定對話框將在後續任務中實作")
+			mw.showSettingsDialog()
 		}),
 	)
 }
@@ -509,4 +527,91 @@ func (mw *MainWindow) UpdateWordCount(count int) {
 // 用於其他元件需要存取視窗功能時使用
 func (mw *MainWindow) GetWindow() fyne.Window {
 	return mw.window
+}
+
+// showSettingsDialog 顯示設定對話框
+// 執行流程：
+// 1. 建立設定對話框實例
+// 2. 設定主題變更回調函數
+// 3. 顯示對話框
+func (mw *MainWindow) showSettingsDialog() {
+	// 建立設定對話框
+	settingsDialog := NewSettingsDialog(
+		mw.window,
+		mw.settings,
+		func(newSettings *models.Settings) {
+			// 當設定變更時的回調函數
+			mw.onSettingsChanged(newSettings)
+		},
+	)
+	
+	// 顯示設定對話框
+	settingsDialog.Show()
+}
+
+// onSettingsChanged 處理設定變更事件
+// 參數：
+//   - newSettings: 新的設定實例
+//
+// 執行流程：
+// 1. 更新內部設定實例
+// 2. 套用主題變更
+// 3. 更新其他相關的 UI 元件
+func (mw *MainWindow) onSettingsChanged(newSettings *models.Settings) {
+	// 更新內部設定
+	mw.settings = newSettings
+	
+	// 如果主題有變更，套用新主題
+	if mw.themeService.GetCurrentTheme() != newSettings.Theme {
+		mw.themeService.SetTheme(newSettings.Theme)
+	}
+	
+	// 更新狀態欄顯示（如果需要）
+	mw.updateUIFromSettings()
+}
+
+// updateUIFromSettings 根據設定更新 UI 元件
+// 執行流程：
+// 1. 更新加密狀態顯示
+// 2. 更新其他相關的狀態指示器
+func (mw *MainWindow) updateUIFromSettings() {
+	// 更新加密狀態顯示
+	if mw.encStatus != nil {
+		encryptionText := fmt.Sprintf("加密: %s", mw.settings.DefaultEncryption)
+		mw.encStatus.SetText(encryptionText)
+	}
+	
+	// 更新保存狀態（顯示自動保存間隔）
+	if mw.saveStatus != nil {
+		saveText := fmt.Sprintf("自動保存: %d分鐘", mw.settings.AutoSaveInterval)
+		mw.saveStatus.SetText(saveText)
+	}
+}
+
+// OnThemeChanged 實作 ThemeListener 介面
+// 參數：
+//   - themeName: 新的主題名稱
+//
+// 執行流程：
+// 1. 更新內部主題狀態
+// 2. 重新整理 UI 元件以反映主題變更
+func (mw *MainWindow) OnThemeChanged(themeName string) {
+	// 主題變更時的處理邏輯
+	// Fyne 會自動處理大部分的主題變更
+	// 這裡可以添加自訂的主題變更邏輯
+	
+	// 更新狀態欄或其他需要手動更新的元件
+	mw.updateUIFromSettings()
+}
+
+// SetupThemeListener 設定主題監聽器
+// 執行流程：
+// 1. 將主視窗註冊為主題變更監聽器
+// 2. 初始化 UI 狀態
+func (mw *MainWindow) SetupThemeListener() {
+	// 註冊主題監聽器
+	mw.themeService.AddThemeListener(mw)
+	
+	// 初始化 UI 狀態
+	mw.updateUIFromSettings()
 }

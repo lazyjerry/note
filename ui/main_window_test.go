@@ -5,6 +5,8 @@ package ui
 import (
 	"testing"                    // Go 標準測試套件
 	"fyne.io/fyne/v2/test"       // Fyne 測試工具套件
+
+	"mac-notebook-app/internal/models"
 )
 
 // TestNewMainWindow 測試主視窗的建立和初始化
@@ -19,9 +21,12 @@ func TestNewMainWindow(t *testing.T) {
 	// 建立測試用的 Fyne 應用程式
 	testApp := test.NewApp()
 	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
 	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp)
+	mainWindow := NewMainWindow(testApp, testSettings)
 	
 	// 驗證主視窗實例不為 nil
 	if mainWindow == nil {
@@ -51,10 +56,19 @@ func TestNewMainWindow(t *testing.T) {
 	if size.Height != expectedHeight {
 		t.Errorf("視窗高度應該是 %f，但得到 %f", expectedHeight, size.Height)
 	}
+
+	// 驗證設定和主題服務已初始化
+	if mainWindow.settings == nil {
+		t.Error("主視窗的 settings 欄位不應該為 nil")
+	}
+	
+	if mainWindow.themeService == nil {
+		t.Error("主視窗的 themeService 欄位不應該為 nil")
+	}
 }
 
-// TestMainWindowUIComponents 測試主視窗的 UI 元件初始化
-// 驗證選單欄、工具欄、狀態欄等元件是否正確建立
+// TestMainWindowUIComponents 測試主視窗 UI 元件的初始化
+// 驗證所有主要 UI 元件是否正確建立和配置
 //
 // 測試項目：
 // 1. 選單欄是否正確建立
@@ -65,39 +79,46 @@ func TestMainWindowUIComponents(t *testing.T) {
 	// 建立測試用的 Fyne 應用程式
 	testApp := test.NewApp()
 	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
 	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp)
+	mainWindow := NewMainWindow(testApp, testSettings)
 	
-	// 驗證選單欄
+	// 驗證選單欄已建立
 	if mainWindow.menuBar == nil {
-		t.Error("選單欄不應該為 nil")
+		t.Error("主視窗的選單欄不應該為 nil")
 	}
 	
-	// 驗證工具欄
+	// 驗證工具欄已建立
 	if mainWindow.toolBar == nil {
-		t.Error("工具欄不應該為 nil")
+		t.Error("主視窗的工具欄不應該為 nil")
 	}
 	
-	// 驗證狀態欄容器
+	// 驗證狀態欄已建立
 	if mainWindow.statusBar == nil {
-		t.Error("狀態欄容器不應該為 nil")
+		t.Error("主視窗的狀態欄不應該為 nil")
 	}
 	
-	// 驗證狀態欄元件
+	// 驗證狀態欄元件已初始化
 	if mainWindow.saveStatus == nil {
-		t.Error("保存狀態指示器不應該為 nil")
+		t.Error("保存狀態標籤不應該為 nil")
 	}
 	
 	if mainWindow.encStatus == nil {
-		t.Error("加密狀態指示器不應該為 nil")
+		t.Error("加密狀態標籤不應該為 nil")
 	}
 	
 	if mainWindow.wordCount == nil {
-		t.Error("字數統計顯示不應該為 nil")
+		t.Error("字數統計標籤不應該為 nil")
 	}
 	
-	// 驗證主要內容區域
+	// 驗證主要內容區域已建立
+	if mainWindow.content == nil {
+		t.Error("主要內容容器不應該為 nil")
+	}
+	
 	if mainWindow.leftPanel == nil {
 		t.Error("左側面板不應該為 nil")
 	}
@@ -109,14 +130,10 @@ func TestMainWindowUIComponents(t *testing.T) {
 	if mainWindow.mainSplit == nil {
 		t.Error("主要分割容器不應該為 nil")
 	}
-	
-	if mainWindow.content == nil {
-		t.Error("主要內容容器不應該為 nil")
-	}
 }
 
 // TestMainWindowStatusUpdates 測試主視窗狀態更新功能
-// 驗證保存狀態、加密狀態和字數統計的更新功能
+// 驗證狀態欄的各種更新功能是否正常工作
 //
 // 測試項目：
 // 1. 保存狀態更新功能
@@ -126,42 +143,45 @@ func TestMainWindowStatusUpdates(t *testing.T) {
 	// 建立測試用的 Fyne 應用程式
 	testApp := test.NewApp()
 	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
 	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp)
+	mainWindow := NewMainWindow(testApp, testSettings)
 	
 	// 測試保存狀態更新
 	testSaveStatus := "正在儲存..."
 	mainWindow.UpdateSaveStatus(testSaveStatus)
 	if mainWindow.saveStatus.Text != testSaveStatus {
-		t.Errorf("保存狀態應該是 '%s'，但得到 '%s'", testSaveStatus, mainWindow.saveStatus.Text)
+		t.Errorf("保存狀態更新失敗，期望 '%s'，得到 '%s'", testSaveStatus, mainWindow.saveStatus.Text)
 	}
 	
-	// 測試加密狀態更新（已加密）
+	// 測試加密狀態更新
 	mainWindow.UpdateEncryptionStatus(true, "AES-256")
 	expectedEncStatus := "已加密 (AES-256)"
 	if mainWindow.encStatus.Text != expectedEncStatus {
-		t.Errorf("加密狀態應該是 '%s'，但得到 '%s'", expectedEncStatus, mainWindow.encStatus.Text)
+		t.Errorf("加密狀態更新失敗，期望 '%s'，得到 '%s'", expectedEncStatus, mainWindow.encStatus.Text)
 	}
 	
-	// 測試加密狀態更新（未加密）
+	// 測試未加密狀態
 	mainWindow.UpdateEncryptionStatus(false, "")
-	expectedEncStatus = "未加密"
-	if mainWindow.encStatus.Text != expectedEncStatus {
-		t.Errorf("加密狀態應該是 '%s'，但得到 '%s'", expectedEncStatus, mainWindow.encStatus.Text)
+	expectedUnencStatus := "未加密"
+	if mainWindow.encStatus.Text != expectedUnencStatus {
+		t.Errorf("未加密狀態更新失敗，期望 '%s'，得到 '%s'", expectedUnencStatus, mainWindow.encStatus.Text)
 	}
 	
 	// 測試字數統計更新
 	testWordCount := 150
 	mainWindow.UpdateWordCount(testWordCount)
-	expectedWordCount := "字數: 150"
-	if mainWindow.wordCount.Text != expectedWordCount {
-		t.Errorf("字數統計應該是 '%s'，但得到 '%s'", expectedWordCount, mainWindow.wordCount.Text)
+	expectedWordCountText := "字數: 150"
+	if mainWindow.wordCount.Text != expectedWordCountText {
+		t.Errorf("字數統計更新失敗，期望 '%s'，得到 '%s'", expectedWordCountText, mainWindow.wordCount.Text)
 	}
 }
 
-// TestMainWindowGetWindow 測試取得視窗實例功能
-// 驗證 GetWindow 方法是否正確回傳視窗實例
+// TestMainWindowGetWindow 測試 GetWindow 方法
+// 驗證 GetWindow 方法是否回傳正確的視窗實例
 //
 // 測試項目：
 // 1. GetWindow 方法是否回傳正確的視窗實例
@@ -170,21 +190,24 @@ func TestMainWindowGetWindow(t *testing.T) {
 	// 建立測試用的 Fyne 應用程式
 	testApp := test.NewApp()
 	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
 	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp)
+	mainWindow := NewMainWindow(testApp, testSettings)
 	
-	// 取得視窗實例
+	// 測試 GetWindow 方法
 	window := mainWindow.GetWindow()
 	
-	// 驗證回傳的視窗實例不為 nil
+	// 驗證回傳的視窗不為 nil
 	if window == nil {
-		t.Error("GetWindow 應該回傳有效的視窗實例")
+		t.Error("GetWindow 不應該回傳 nil")
 	}
 	
-	// 驗證回傳的視窗實例與原始視窗相同
+	// 驗證回傳的視窗與原始視窗相同
 	if window != mainWindow.window {
-		t.Error("GetWindow 應該回傳與原始視窗相同的實例")
+		t.Error("GetWindow 應該回傳與內部 window 欄位相同的實例")
 	}
 }
 
@@ -197,13 +220,91 @@ func TestMainWindowSplitRatio(t *testing.T) {
 	// 建立測試用的 Fyne 應用程式
 	testApp := test.NewApp()
 	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
 	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp)
+	mainWindow := NewMainWindow(testApp, testSettings)
 	
-	// 驗證分割比例
+	// 驗證分割容器的偏移量
 	expectedOffset := 0.3
-	if mainWindow.mainSplit.Offset != expectedOffset {
-		t.Errorf("分割容器的偏移量應該是 %f，但得到 %f", expectedOffset, mainWindow.mainSplit.Offset)
+	actualOffset := mainWindow.mainSplit.Offset
+	
+	if actualOffset != expectedOffset {
+		t.Errorf("分割容器偏移量應該是 %f，但得到 %f", expectedOffset, actualOffset)
 	}
+}
+
+// TestMainWindowThemeIntegration 測試主題整合功能
+// 驗證主題服務是否正確整合到主視窗中
+//
+// 測試項目：
+// 1. 主題服務是否正確初始化
+// 2. 主題監聽器是否正確設定
+// 3. 設定變更是否正確處理
+func TestMainWindowThemeIntegration(t *testing.T) {
+	// 建立測試用的 Fyne 應用程式
+	testApp := test.NewApp()
+	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
+	testSettings.Theme = "dark"
+	
+	// 建立主視窗實例
+	mainWindow := NewMainWindow(testApp, testSettings)
+	
+	// 驗證主題服務已初始化
+	if mainWindow.themeService == nil {
+		t.Fatal("主題服務不應該為 nil")
+	}
+	
+	// 驗證當前主題設定
+	currentTheme := mainWindow.themeService.GetCurrentTheme()
+	if currentTheme != "dark" {
+		t.Errorf("當前主題應該是 'dark'，但得到 '%s'", currentTheme)
+	}
+	
+	// 測試設定變更處理
+	newSettings := models.NewDefaultSettings()
+	newSettings.Theme = "light"
+	newSettings.DefaultEncryption = "chacha20"
+	newSettings.AutoSaveInterval = 10
+	
+	mainWindow.onSettingsChanged(newSettings)
+	
+	// 驗證設定已更新
+	if mainWindow.settings.Theme != "light" {
+		t.Error("設定變更後主題應該更新為 'light'")
+	}
+	
+	if mainWindow.settings.DefaultEncryption != "chacha20" {
+		t.Error("設定變更後加密演算法應該更新為 'chacha20'")
+	}
+}
+
+// TestMainWindowOnThemeChanged 測試主題變更監聽器
+// 驗證主題變更監聽器是否正確實作
+//
+// 測試項目：
+// 1. OnThemeChanged 方法是否正確實作
+// 2. 主題變更時 UI 是否正確更新
+func TestMainWindowOnThemeChanged(t *testing.T) {
+	// 建立測試用的 Fyne 應用程式
+	testApp := test.NewApp()
+	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
+	
+	// 建立主視窗實例
+	mainWindow := NewMainWindow(testApp, testSettings)
+	
+	// 測試主題變更監聽器
+	mainWindow.OnThemeChanged("dark")
+	
+	// 驗證方法執行不會產生錯誤
+	// 實際的主題變更效果由 Fyne 框架處理
+	// 這裡主要確保方法能正常執行
 }

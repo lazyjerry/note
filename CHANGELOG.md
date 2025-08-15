@@ -9,7 +9,40 @@
 
 ### 🚧 進行中
 
-- Task 10 已完成，準備開始 Task 11: 實作設定管理 UI
+- Task 11 已完成，準備發布 v0.11.0
+
+## [0.11.0] - 2025-08-15
+
+### ✅ 新增功能
+
+- **Task 11: 實作設定管理 UI** ✅ 已完成
+
+  - **Task 11.1: 建立設定對話框** ✅ 已完成
+
+    - 建立完整的 `SettingsDialog` 設定對話框，提供應用程式組態管理介面
+    - 實作加密設定區塊：`encryptionSelect` 提供 AES-256 和 ChaCha20 加密演算法選擇
+    - 實作生物識別設定：`biometricCheck` 控制 Touch ID/Face ID 驗證功能的啟用
+    - 實作檔案管理設定：`autoSaveEntry` 設定自動保存間隔（1-60 分鐘）
+    - 實作保存位置設定：`saveLocationEntry`, `browseButton` 選擇預設筆記保存位置
+    - 實作外觀設定：`themeSelect` 提供淺色/深色/自動主題選擇
+    - 實作設定驗證：即時驗證使用者輸入的有效性，防止無效設定
+    - 實作設定持久化：`onSaveSettings` 將設定保存到檔案系統
+    - 實作重設功能：`onResetToDefaults` 一鍵恢復所有設定為預設值
+    - 實作設定同步：`updateUIFromSettings`, `notifySettingsChanged` 確保 UI 與設定狀態同步
+    - 建立完整的測試套件：涵蓋所有設定變更、驗證和 UI 互動的測試案例
+
+  - **Task 11.2: 整合主題和外觀設定** ✅ 已完成
+    - 建立完整的 `ThemeService` 主題管理服務，提供應用程式主題控制功能
+    - 實作主題切換功能：`SetTheme` 支援淺色/深色/自動三種主題模式
+    - 實作系統主題偵測：`detectSystemTheme`, `GetSystemTheme` 自動偵測 macOS 系統主題
+    - 實作自動主題模式：`applyTheme` 根據系統設定自動切換淺色/深色主題
+    - 實作主題監聽器機制：`ThemeListener` 介面讓 UI 元件能接收主題變更通知
+    - 實作主題狀態管理：`AddThemeListener`, `RemoveThemeListener` 管理主題變更監聽器
+    - 實作自訂主題支援：`customTheme` 結構體實作 Fyne 主題介面
+    - 整合主視窗主題功能：更新 `MainWindow` 支援設定對話框和主題服務
+    - 實作設定對話框整合：在主選單和工具欄中添加設定對話框入口
+    - 實作主題變更回調：`onSettingsChanged`, `OnThemeChanged` 處理主題變更事件
+    - 建立完整的測試套件：涵蓋主題服務、主題切換和 UI 整合的測試案例
 
 ## [0.10.0] - 2025-08-14
 

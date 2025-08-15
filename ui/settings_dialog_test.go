@@ -5,7 +5,6 @@ package ui
 import (
 	"testing"
 
-	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/test"
 
 	"mac-notebook-app/internal/models"
@@ -18,7 +17,7 @@ import (
 // 3. 設定值正確載入到 UI 元件
 func TestNewSettingsDialog(t *testing.T) {
 	// 建立測試應用程式和視窗
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -80,7 +79,7 @@ func TestNewSettingsDialog(t *testing.T) {
 // 2. 設定變更回調函數被正確呼叫
 func TestSettingsDialog_EncryptionChange(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -115,7 +114,7 @@ func TestSettingsDialog_EncryptionChange(t *testing.T) {
 // 2. 輸入無效值時設定不變更
 func TestSettingsDialog_AutoSaveIntervalChange(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -147,6 +146,9 @@ func TestSettingsDialog_AutoSaveIntervalChange(t *testing.T) {
 		t.Errorf("無效輸入後設定被錯誤更新，期望 15，實際 %d", dialog.settings.AutoSaveInterval)
 	}
 
+	// 使用 changedSettings 避免未使用變數警告
+	_ = changedSettings
+
 	// 測試超出範圍的值
 	dialog.autoSaveEntry.SetText("100")
 	dialog.autoSaveEntry.OnChanged("100")
@@ -163,7 +165,7 @@ func TestSettingsDialog_AutoSaveIntervalChange(t *testing.T) {
 // 2. 設定變更回調函數被正確呼叫
 func TestSettingsDialog_BiometricToggle(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -199,7 +201,7 @@ func TestSettingsDialog_BiometricToggle(t *testing.T) {
 // 2. 設定變更回調函數被正確呼叫
 func TestSettingsDialog_ThemeChange(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -234,7 +236,7 @@ func TestSettingsDialog_ThemeChange(t *testing.T) {
 // 2. UI 元件正確更新顯示
 func TestSettingsDialog_ResetToDefaults(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -256,6 +258,9 @@ func TestSettingsDialog_ResetToDefaults(t *testing.T) {
 	dialog.settings = models.NewDefaultSettings()
 	dialog.updateUIFromSettings()
 	dialog.notifySettingsChanged()
+
+	// 使用 changedSettings 避免未使用變數警告
+	_ = changedSettings
 
 	// 驗證設定已重設為預設值
 	defaultSettings := models.NewDefaultSettings()
@@ -294,7 +299,7 @@ func TestSettingsDialog_ResetToDefaults(t *testing.T) {
 // 2. SetSettings 正確更新設定和 UI
 func TestSettingsDialog_GetAndSetSettings(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -351,7 +356,7 @@ func TestSettingsDialog_GetAndSetSettings(t *testing.T) {
 // 2. Hide 方法正確隱藏對話框
 func TestSettingsDialog_ShowHide(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 
@@ -374,7 +379,7 @@ func TestSettingsDialog_ShowHide(t *testing.T) {
 // 2. 驗證錯誤得到適當處理
 func TestSettingsDialog_ValidationHandling(t *testing.T) {
 	// 建立測試環境
-	testApp := app.New()
+	testApp := test.NewApp()
 	testWindow := testApp.NewWindow("Test")
 	defer testWindow.Close()
 

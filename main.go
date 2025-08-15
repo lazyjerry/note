@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/theme"    // 提供主題相關功能，用於自訂 UI 外觀樣式
 	_ "embed"                  // Go 1.16+ 嵌入式檔案支援，用於嵌入字型資源
 	"image/color"              // Go 標準庫，提供顏色定義和處理功能
+	"mac-notebook-app/internal/models" // 本專案的資料模型套件
 	"mac-notebook-app/ui"      // 本專案的 UI 套件，包含主視窗和其他 UI 元件
 )
 
@@ -28,9 +29,16 @@ func main() {
 	// 設定應用程式主題為支援中日韓字型的深色主題
 	myApp.Settings().SetTheme(&cjkTheme{base: theme.DarkTheme()})
 
+	// 載入應用程式設定
+	settings, err := models.LoadDefault()
+	if err != nil {
+		// 如果載入設定失敗，使用預設設定
+		settings = models.NewDefaultSettings()
+	}
+
 	// 建立主視窗實例
 	// 使用新的 MainWindow 結構，包含完整的 UI 佈局
-	mainWindow := ui.NewMainWindow(myApp)
+	mainWindow := ui.NewMainWindow(myApp, settings)
 
 	// 顯示主視窗並啟動應用程式的主事件迴圈
 	// 這個函數會阻塞直到使用者關閉應用程式

@@ -263,9 +263,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄生物驗證 UI 整合，完成 Task 10 並發布 v0.10.0**
     - _需求: 5.2, 5.3, 5.5_
 
-- [-] 11. 實作設定管理 UI
+- [x] 11. 實作設定管理 UI
 
-  - [ ] 11.1 建立設定對話框
+  - [x] 11.1 建立設定對話框
 
     - 創建設定界面佈局
     - 實作加密演算法選擇
@@ -275,7 +275,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄設定對話框的實作**
     - _需求: 6.1, 6.3, 7.6_
 
-  - [ ] 11.2 整合主題和外觀設定
+  - [x] 11.2 整合主題和外觀設定
     - 實作主題切換功能
     - 添加外觀自訂選項
     - 整合系統主題偵測
@@ -284,9 +284,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄主題和外觀設定整合，完成 Task 11 並發布 v0.11.0**
     - _需求: 6.1_
 
-- [ ] 12. 整合所有服務到 UI
+- [-] 12. 整合所有服務到 UI
 
-  - [ ] 12.1 連接編輯器服務到 UI
+  - [-] 12.1 連接編輯器服務到 UI
 
     - 整合編輯器服務到主界面
     - 實作檔案開啟和保存的 UI 流程
