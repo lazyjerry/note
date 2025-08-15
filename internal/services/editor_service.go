@@ -21,6 +21,7 @@ import (
 // editorService 實作 EditorService 介面
 // 負責處理筆記的核心編輯功能，包含建立、開啟、保存、更新和 Markdown 預覽
 // 整合加密功能，支援加密檔案的開啟、保存和管理
+// 新增效能優化功能，支援大檔案處理和記憶體管理
 type editorService struct {
 	fileRepo      repositories.FileRepository // 檔案存取介面
 	encryptionSvc EncryptionService           // 加密服務介面
@@ -28,6 +29,12 @@ type editorService struct {
 	biometricSvc  BiometricService            // 生物識別服務介面
 	markdown      goldmark.Markdown           // Markdown 解析器實例
 	activeNotes   map[string]*models.Note     // 當前開啟的筆記快取
+	perfService   PerformanceService          // 效能服務介面
+	
+	// 效能優化相關欄位
+	maxCacheSize     int                      // 最大快取大小
+	largeFileThreshold int64                  // 大檔案閾值（位元組）
+	chunkSize        int64                    // 分塊處理大小
 }
 
 // NewEditorService 建立新的編輯器服務實例
@@ -36,14 +43,16 @@ type editorService struct {
 //   - encryptionSvc: 加密服務介面
 //   - passwordSvc: 密碼服務介面
 //   - biometricSvc: 生物識別服務介面
+//   - perfService: 效能服務介面（可選，用於效能監控和優化）
 // 回傳：EditorService 介面實例
 //
 // 執行流程：
 // 1. 初始化 goldmark Markdown 解析器，啟用常用擴展功能
 // 2. 建立筆記快取映射表
 // 3. 整合加密相關服務
-// 4. 回傳配置完成的編輯器服務實例
-func NewEditorService(fileRepo repositories.FileRepository, encryptionSvc EncryptionService, passwordSvc PasswordService, biometricSvc BiometricService) EditorService {
+// 4. 設定效能優化參數
+// 5. 回傳配置完成的編輯器服務實例
+func NewEditorService(fileRepo repositories.FileRepository, encryptionSvc EncryptionService, passwordSvc PasswordService, biometricSvc BiometricService, perfService PerformanceService) EditorService {
 	// 配置 Markdown 解析器，啟用表格、刪除線、任務列表等擴展功能
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -62,12 +71,16 @@ func NewEditorService(fileRepo repositories.FileRepository, encryptionSvc Encryp
 	)
 
 	return &editorService{
-		fileRepo:      fileRepo,
-		encryptionSvc: encryptionSvc,
-		passwordSvc:   passwordSvc,
-		biometricSvc:  biometricSvc,
-		markdown:      md,
-		activeNotes:   make(map[string]*models.Note),
+		fileRepo:           fileRepo,
+		encryptionSvc:      encryptionSvc,
+		passwordSvc:        passwordSvc,
+		biometricSvc:       biometricSvc,
+		markdown:           md,
+		activeNotes:        make(map[string]*models.Note),
+		perfService:        perfService,
+		maxCacheSize:       100,              // 最多快取 100 個筆記
+		largeFileThreshold: 5 * 1024 * 1024,  // 5MB 以上視為大檔案
+		chunkSize:          1024 * 1024,      // 1MB 分塊大小
 	}
 }
 
@@ -615,4 +628,236 @@ func (e *editorService) GetEncryptionType(noteID string) (string, bool) {
 		return "", false
 	}
 	return note.EncryptionType, true
+}
+
+// OptimizeForLargeFile 為大檔案處理進行優化
+// 參數：
+//   - filePath: 檔案路徑
+//   - fileSize: 檔案大小
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 檢查檔案大小是否超過大檔案閾值
+// 2. 如果是大檔案，執行記憶體優化
+// 3. 調整快取策略
+// 4. 通知效能服務進行優化
+func (e *editorService) OptimizeForLargeFile(filePath string, fileSize int64) error {
+	// 檢查是否為大檔案
+	if fileSize > e.largeFileThreshold {
+		// 清理快取以釋放記憶體
+		if err := e.optimizeCache(); err != nil {
+			return fmt.Errorf("快取優化失敗: %w", err)
+		}
+		
+		// 通知效能服務進行優化
+		if e.perfService != nil {
+			if err := e.perfService.OptimizeForLargeFile(filePath, fileSize); err != nil {
+				return fmt.Errorf("效能服務優化失敗: %w", err)
+			}
+		}
+	}
+	
+	return nil
+}
+
+// ProcessLargeFileInChunks 分塊處理大檔案內容
+// 參數：
+//   - content: 檔案內容
+//   - processor: 處理函數
+// 回傳：處理結果和可能的錯誤
+//
+// 執行流程：
+// 1. 將內容分割成指定大小的塊
+// 2. 逐塊處理內容
+// 3. 在處理過程中監控記憶體使用
+// 4. 必要時執行垃圾回收
+func (e *editorService) ProcessLargeFileInChunks(content string, processor func(string) (string, error)) (string, error) {
+	contentBytes := []byte(content)
+	contentSize := int64(len(contentBytes))
+	
+	// 如果內容不大，直接處理
+	if contentSize <= e.largeFileThreshold {
+		return processor(content)
+	}
+	
+	// 分塊處理大內容
+	var result strings.Builder
+	result.Grow(len(content)) // 預分配記憶體
+	
+	for i := int64(0); i < contentSize; i += e.chunkSize {
+		end := i + e.chunkSize
+		if end > contentSize {
+			end = contentSize
+		}
+		
+		chunk := string(contentBytes[i:end])
+		processedChunk, err := processor(chunk)
+		if err != nil {
+			return "", fmt.Errorf("處理第 %d 塊時發生錯誤: %w", i/e.chunkSize+1, err)
+		}
+		
+		result.WriteString(processedChunk)
+		
+		// 每處理 10 個塊後檢查記憶體使用
+		if (i/e.chunkSize+1)%10 == 0 {
+			if e.perfService != nil {
+				memUsage, _ := e.perfService.GetMemoryUsage()
+				// 如果記憶體使用超過 100MB，執行垃圾回收
+				if memUsage > 100*1024*1024 {
+					e.perfService.ForceGarbageCollection()
+				}
+			}
+		}
+	}
+	
+	return result.String(), nil
+}
+
+// optimizeCache 優化筆記快取
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 檢查快取大小是否超過限制
+// 2. 如果超過，移除最舊的筆記
+// 3. 記錄快取優化統計
+func (e *editorService) optimizeCache() error {
+	if len(e.activeNotes) <= e.maxCacheSize {
+		return nil // 快取大小在限制內
+	}
+	
+	// 找出最舊的筆記並移除
+	var oldestID string
+	var oldestTime time.Time = time.Now()
+	
+	for id, note := range e.activeNotes {
+		if note.UpdatedAt.Before(oldestTime) {
+			oldestTime = note.UpdatedAt
+			oldestID = id
+		}
+	}
+	
+	// 移除最舊的筆記
+	if oldestID != "" {
+		delete(e.activeNotes, oldestID)
+		
+		// 記錄快取未命中（因為移除了快取項目）
+		if e.perfService != nil {
+			if ps, ok := e.perfService.(*performanceService); ok {
+				ps.RecordCacheMiss()
+			}
+		}
+	}
+	
+	return nil
+}
+
+// PreviewMarkdownOptimized 優化的 Markdown 預覽功能
+// 參數：content（Markdown 格式的內容）
+// 回傳：轉換後的 HTML 字串
+//
+// 執行流程：
+// 1. 檢查內容大小
+// 2. 如果是大內容，使用分塊處理
+// 3. 對每個塊進行 Markdown 轉換
+// 4. 合併結果並回傳
+func (e *editorService) PreviewMarkdownOptimized(content string) string {
+	contentSize := int64(len(content))
+	
+	// 小內容直接處理
+	if contentSize <= e.largeFileThreshold {
+		return e.PreviewMarkdown(content)
+	}
+	
+	// 大內容分塊處理
+	result, err := e.ProcessLargeFileInChunks(content, func(chunk string) (string, error) {
+		var buf bytes.Buffer
+		err := e.markdown.Convert([]byte(chunk), &buf)
+		if err != nil {
+			return "", err
+		}
+		return buf.String(), nil
+	})
+	
+	if err != nil {
+		return fmt.Sprintf("<p>Markdown 轉換錯誤: %s</p>", err.Error())
+	}
+	
+	return result
+}
+
+// GetCacheStats 取得快取統計資訊
+// 回傳：快取統計資料
+//
+// 執行流程：
+// 1. 計算當前快取使用情況
+// 2. 計算快取使用率
+// 3. 回傳統計資料
+func (e *editorService) GetCacheStats() map[string]interface{} {
+	cacheUsage := float64(len(e.activeNotes)) / float64(e.maxCacheSize)
+	
+	return map[string]interface{}{
+		"active_notes":    len(e.activeNotes),
+		"max_cache_size":  e.maxCacheSize,
+		"cache_usage":     cacheUsage,
+		"large_file_threshold": e.largeFileThreshold,
+		"chunk_size":      e.chunkSize,
+	}
+}
+
+// ClearCache 清空筆記快取
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 清空所有活躍筆記
+// 2. 通知效能服務記錄快取清理
+func (e *editorService) ClearCache() error {
+	// 記錄清理前的快取大小
+	cacheSize := len(e.activeNotes)
+	
+	// 清空快取
+	e.activeNotes = make(map[string]*models.Note)
+	
+	// 通知效能服務
+	if e.perfService != nil {
+		if ps, ok := e.perfService.(*performanceService); ok {
+			// 記錄多次快取未命中以反映清理操作
+			for i := 0; i < cacheSize; i++ {
+				ps.RecordCacheMiss()
+			}
+		}
+	}
+	
+	return nil
+}
+
+// MonitorMemoryUsage 監控記憶體使用情況
+// 回傳：當前記憶體使用量和建議
+//
+// 執行流程：
+// 1. 取得當前記憶體使用量
+// 2. 分析快取使用情況
+// 3. 提供優化建議
+func (e *editorService) MonitorMemoryUsage() (int64, string, error) {
+	if e.perfService == nil {
+		return 0, "效能服務未啟用", nil
+	}
+	
+	memUsage, err := e.perfService.GetMemoryUsage()
+	if err != nil {
+		return 0, "", fmt.Errorf("取得記憶體使用量失敗: %w", err)
+	}
+	
+	var suggestion string
+	cacheSize := len(e.activeNotes)
+	
+	// 根據記憶體使用情況提供建議
+	if memUsage > 200*1024*1024 { // 超過 200MB
+		suggestion = "記憶體使用量較高，建議清理快取或關閉不需要的筆記"
+	} else if cacheSize > e.maxCacheSize*8/10 { // 快取使用率超過 80%
+		suggestion = "快取使用率較高，建議關閉一些不常用的筆記"
+	} else {
+		suggestion = "記憶體使用正常"
+	}
+	
+	return memUsage, suggestion, nil
 }

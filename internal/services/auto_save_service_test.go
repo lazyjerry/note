@@ -15,6 +15,7 @@ type MockEditorService struct {
 	saveCallLog  []*models.Note           // 記錄所有保存呼叫的筆記
 	shouldFail   bool                     // 控制是否模擬保存失敗
 	saveDelay    time.Duration            // 模擬保存操作的延遲
+	notes        map[string]*models.Note  // 儲存的筆記
 }
 
 // CreateNote 模擬建立筆記功能
@@ -80,6 +81,36 @@ func (m *MockEditorService) DecryptWithPassword(noteID, password string) (string
 	return "解密後的內容", nil
 }
 
+// GetActiveNotes 模擬取得所有活躍筆記功能
+// 回傳：活躍筆記的映射表
+func (m *MockEditorService) GetActiveNotes() map[string]*models.Note {
+	return make(map[string]*models.Note)
+}
+
+// CloseNote 模擬關閉筆記功能
+// 參數：noteID（筆記 ID）
+func (m *MockEditorService) CloseNote(noteID string) {
+	// 模擬關閉筆記操作
+}
+
+// GetActiveNote 模擬取得活躍筆記功能
+// 參數：noteID（筆記 ID）
+// 回傳：筆記實例和是否存在
+func (m *MockEditorService) GetActiveNote(noteID string) (*models.Note, bool) {
+	if m.notes == nil {
+		m.notes = make(map[string]*models.Note)
+	}
+	note, exists := m.notes[noteID]
+	return note, exists
+}
+
+// NewMockEditorService 建立新的模擬編輯器服務
+func NewMockEditorService() *MockEditorService {
+	return &MockEditorService{
+		notes: make(map[string]*models.Note),
+	}
+}
+
 // GetSaveCallCount 取得保存呼叫的次數
 // 回傳：保存呼叫次數
 func (m *MockEditorService) GetSaveCallCount() int {
@@ -116,7 +147,7 @@ func (m *MockEditorService) SetSaveDelay(delay time.Duration) {
 // TestNewAutoSaveService 測試自動保存服務的建立
 // 驗證服務實例是否正確初始化
 func TestNewAutoSaveService(t *testing.T) {
-	mockEditor := &MockEditorService{}
+	mockEditor := NewMockEditorService()
 	service := NewAutoSaveServiceWithDefaults(mockEditor)
 
 	// 驗證服務實例不為 nil

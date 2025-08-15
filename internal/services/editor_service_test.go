@@ -135,7 +135,7 @@ func createTestEditorService() (EditorService, *mockFileRepository) {
 	mockPassword := &mockPasswordService{}
 	mockBiometric := &mockBiometricService{}
 	
-	service := NewEditorService(mockRepo, mockEncryption, mockPassword, mockBiometric)
+	service := NewEditorService(mockRepo, mockEncryption, mockPassword, mockBiometric, nil)
 	return service, mockRepo
 }
 

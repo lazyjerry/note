@@ -39,6 +39,19 @@ type EditorService interface {
 	// 參數：noteID（筆記 ID）、password（解密密碼）
 	// 回傳：解密後的內容和可能的錯誤
 	DecryptWithPassword(noteID, password string) (string, error)
+	
+	// GetActiveNotes 取得所有活躍筆記
+	// 回傳：活躍筆記的映射表
+	GetActiveNotes() map[string]*models.Note
+	
+	// CloseNote 關閉指定的筆記
+	// 參數：noteID（筆記 ID）
+	CloseNote(noteID string)
+	
+	// GetActiveNote 取得指定的活躍筆記
+	// 參數：noteID（筆記 ID）
+	// 回傳：筆記實例和是否存在
+	GetActiveNote(noteID string) (*models.Note, bool)
 }
 
 // FileManagerService 定義檔案系統操作的介面
@@ -73,6 +86,11 @@ type FileManagerService interface {
 	// 參數：sourcePath（來源路徑）、destPath（目標路徑）
 	// 回傳：可能的錯誤
 	CopyFile(sourcePath, destPath string) error
+	
+	// SearchFiles 搜尋檔案
+	// 參數：searchPath（搜尋路徑）、pattern（搜尋模式）、includeSubdirs（是否包含子目錄）
+	// 回傳：符合條件的檔案資訊陣列和可能的錯誤
+	SearchFiles(searchPath, pattern string, includeSubdirs bool) ([]*models.FileInfo, error)
 }
 
 // EncryptionService 定義加密操作的介面

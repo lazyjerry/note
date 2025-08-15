@@ -326,9 +326,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄用戶通知系統實作，完成 Task 13 並發布 v0.13.0**
     - _需求: 7.4, 7.5_
 
-- [ ] 14. 效能優化和測試
+- [x] 14. 效能優化和測試
 
-  - [ ] 14.1 實作效能優化
+  - [x] 14.1 實作效能優化
 
     - 優化大檔案的載入和渲染
     - 實作記憶體使用優化
@@ -338,7 +338,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄效能優化的實作**
     - _需求: 7.3_
 
-  - [ ] 14.2 完整的整合測試
+  - [x] 14.2 完整的整合測試
     - 編寫端到端的使用場景測試
     - 實作自動化 UI 測試
     - 添加長時間運行的穩定性測試
