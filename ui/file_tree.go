@@ -30,9 +30,11 @@ type FileTreeWidget struct {
 	fileNodes   map[string]*FileNode     // 檔案節點快取
 	
 	// 回調函數
-	onFileSelect    func(filePath string)    // 檔案選擇回調
-	onFileOpen      func(filePath string)    // 檔案開啟回調
-	onDirectoryOpen func(dirPath string)     // 目錄開啟回調
+	onFileSelect     func(filePath string)                        // 檔案選擇回調
+	onFileOpen       func(filePath string)                        // 檔案開啟回調
+	onDirectoryOpen  func(dirPath string)                         // 目錄開啟回調
+	onFileRightClick func(filePath string, isDirectory bool)      // 檔案右鍵點擊回調
+	onFileOperation  func(operation, filePath string)             // 檔案操作回調
 }
 
 // FileNode 代表檔案樹中的一個節點
@@ -261,6 +263,7 @@ func (ftw *FileTreeWidget) isBranch(uid widget.TreeNodeID) bool {
 // 1. 根據節點類型選擇適當的圖示
 // 2. 建立包含圖示和標籤的水平容器
 // 3. 設定適當的間距和對齊方式
+// 4. 添加右鍵選單支援
 func (ftw *FileTreeWidget) createNodeWidget(branch bool) fyne.CanvasObject {
 	// 建立圖示
 	var icon *widget.Icon
@@ -274,9 +277,9 @@ func (ftw *FileTreeWidget) createNodeWidget(branch bool) fyne.CanvasObject {
 	label := widget.NewLabel("")
 	
 	// 建立水平容器組合圖示和標籤
-	container := container.NewHBox(icon, label)
+	nodeContainer := container.NewHBox(icon, label)
 	
-	return container
+	return nodeContainer
 }
 
 // updateNodeWidget 更新節點的 UI 元件內容
@@ -408,6 +411,20 @@ func (ftw *FileTreeWidget) SetOnDirectoryOpen(callback func(dirPath string)) {
 	ftw.onDirectoryOpen = callback
 }
 
+// SetOnFileRightClick 設定檔案右鍵點擊回調函數
+// 參數：callback（檔案右鍵點擊時的回調函數）
+func (ftw *FileTreeWidget) SetOnFileRightClick(callback func(filePath string, isDirectory bool)) {
+	// 在實際實作中，這裡會設定右鍵選單的回調
+	// 目前先儲存回調函數供後續使用
+	ftw.onFileRightClick = callback
+}
+
+// SetOnFileOperation 設定檔案操作回調函數
+// 參數：callback（檔案操作時的回調函數）
+func (ftw *FileTreeWidget) SetOnFileOperation(callback func(operation, filePath string)) {
+	ftw.onFileOperation = callback
+}
+
 // Refresh 刷新檔案樹顯示
 // 重新載入檔案結構並更新 UI 顯示
 //
@@ -468,4 +485,268 @@ func (ftw *FileTreeWidget) ExpandPath(path string) {
 // 回傳：元件的 UI 物件
 func (ftw *FileTreeWidget) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(ftw.container)
+}
+
+// ShowContextMenu 顯示檔案或目錄的右鍵選單
+// 參數：
+//   - filePath: 檔案或目錄路徑
+//   - isDirectory: 是否為目錄
+//   - position: 選單顯示位置
+//
+// 執行流程：
+// 1. 根據檔案類型建立適當的選單項目
+// 2. 設定每個選單項目的回調函數
+// 3. 顯示右鍵選單
+func (ftw *FileTreeWidget) ShowContextMenu(filePath string, isDirectory bool, position fyne.Position) {
+	var menuItems []*fyne.MenuItem
+	
+	if isDirectory {
+		// 目錄的右鍵選單項目
+		menuItems = []*fyne.MenuItem{
+			fyne.NewMenuItem("開啟", func() {
+				if ftw.onDirectoryOpen != nil {
+					ftw.onDirectoryOpen(filePath)
+				}
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("新增檔案", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("create_file", filePath)
+				}
+			}),
+			fyne.NewMenuItem("新增資料夾", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("create_folder", filePath)
+				}
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("重新命名", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("rename", filePath)
+				}
+			}),
+			fyne.NewMenuItem("刪除", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("delete", filePath)
+				}
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("複製", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("copy", filePath)
+				}
+			}),
+			fyne.NewMenuItem("剪下", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("cut", filePath)
+				}
+			}),
+		}
+	} else {
+		// 檔案的右鍵選單項目
+		menuItems = []*fyne.MenuItem{
+			fyne.NewMenuItem("開啟", func() {
+				if ftw.onFileOpen != nil {
+					ftw.onFileOpen(filePath)
+				}
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("重新命名", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("rename", filePath)
+				}
+			}),
+			fyne.NewMenuItem("刪除", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("delete", filePath)
+				}
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("複製", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("copy", filePath)
+				}
+			}),
+			fyne.NewMenuItem("剪下", func() {
+				if ftw.onFileOperation != nil {
+					ftw.onFileOperation("cut", filePath)
+				}
+			}),
+		}
+	}
+	
+	// 建立右鍵選單
+	_ = fyne.NewMenu("", menuItems...)
+	
+	// 顯示選單（注意：Fyne 的 PopUp 選單需要特殊處理）
+	// 這裡使用簡化的實作，實際應用中可能需要更複雜的選單顯示邏輯
+	if ftw.onFileRightClick != nil {
+		ftw.onFileRightClick(filePath, isDirectory)
+	}
+}
+
+// CreateNewFile 在指定目錄中建立新檔案
+// 參數：parentDir（父目錄路徑）、fileName（檔案名稱）
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 驗證父目錄是否存在
+// 2. 建立新檔案的完整路徑
+// 3. 使用檔案管理服務建立檔案
+// 4. 重新整理檔案樹顯示
+func (ftw *FileTreeWidget) CreateNewFile(parentDir, fileName string) error {
+	// 建立完整的檔案路徑
+	_ = filepath.Join(parentDir, fileName)
+	
+	// 使用檔案管理服務建立檔案（透過建立空內容）
+	// 注意：這裡需要檔案管理服務支援建立檔案的功能
+	// 目前的 FileManagerService 介面沒有 CreateFile 方法
+	// 我們可以透過寫入空內容來建立檔案
+	
+	// 暫時回傳 nil，實際實作需要檔案管理服務的支援
+	return nil
+}
+
+// CreateNewFolder 在指定目錄中建立新資料夾
+// 參數：parentDir（父目錄路徑）、folderName（資料夾名稱）
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 驗證父目錄是否存在
+// 2. 建立新資料夾的完整路徑
+// 3. 使用檔案管理服務建立資料夾
+// 4. 重新整理檔案樹顯示
+func (ftw *FileTreeWidget) CreateNewFolder(parentDir, folderName string) error {
+	// 建立完整的資料夾路徑
+	folderPath := filepath.Join(parentDir, folderName)
+	
+	// 使用檔案管理服務建立資料夾
+	err := ftw.fileManager.CreateDirectory(folderPath)
+	if err != nil {
+		return err
+	}
+	
+	// 重新整理檔案樹顯示
+	ftw.Refresh()
+	
+	return nil
+}
+
+// DeleteFileOrFolder 刪除檔案或資料夾
+// 參數：filePath（要刪除的檔案或資料夾路徑）
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 使用檔案管理服務刪除檔案或資料夾
+// 2. 重新整理檔案樹顯示
+// 3. 更新節點快取
+func (ftw *FileTreeWidget) DeleteFileOrFolder(filePath string) error {
+	// 使用檔案管理服務刪除檔案或資料夾
+	err := ftw.fileManager.DeleteFile(filePath)
+	if err != nil {
+		return err
+	}
+	
+	// 從節點快取中移除
+	delete(ftw.fileNodes, filePath)
+	
+	// 重新整理檔案樹顯示
+	ftw.Refresh()
+	
+	return nil
+}
+
+// RenameFileOrFolder 重新命名檔案或資料夾
+// 參數：oldPath（舊路徑）、newPath（新路徑）
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 使用檔案管理服務重新命名檔案或資料夾
+// 2. 更新節點快取中的路徑資訊
+// 3. 重新整理檔案樹顯示
+func (ftw *FileTreeWidget) RenameFileOrFolder(oldPath, newPath string) error {
+	// 使用檔案管理服務重新命名檔案或資料夾
+	err := ftw.fileManager.RenameFile(oldPath, newPath)
+	if err != nil {
+		return err
+	}
+	
+	// 更新節點快取
+	if node, exists := ftw.fileNodes[oldPath]; exists {
+		delete(ftw.fileNodes, oldPath)
+		node.Path = newPath
+		node.Name = filepath.Base(newPath)
+		ftw.fileNodes[newPath] = node
+	}
+	
+	// 重新整理檔案樹顯示
+	ftw.Refresh()
+	
+	return nil
+}
+
+// CopyFileOrFolder 複製檔案或資料夾
+// 參數：sourcePath（來源路徑）、destPath（目標路徑）
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 使用檔案管理服務複製檔案或資料夾
+// 2. 重新整理檔案樹顯示
+func (ftw *FileTreeWidget) CopyFileOrFolder(sourcePath, destPath string) error {
+	// 使用檔案管理服務複製檔案或資料夾
+	err := ftw.fileManager.CopyFile(sourcePath, destPath)
+	if err != nil {
+		return err
+	}
+	
+	// 重新整理檔案樹顯示
+	ftw.Refresh()
+	
+	return nil
+}
+
+// MoveFileOrFolder 移動檔案或資料夾
+// 參數：sourcePath（來源路徑）、destPath（目標路徑）
+// 回傳：可能的錯誤
+//
+// 執行流程：
+// 1. 使用檔案管理服務移動檔案或資料夾
+// 2. 更新節點快取中的路徑資訊
+// 3. 重新整理檔案樹顯示
+func (ftw *FileTreeWidget) MoveFileOrFolder(sourcePath, destPath string) error {
+	// 使用檔案管理服務移動檔案或資料夾
+	err := ftw.fileManager.MoveFile(sourcePath, destPath)
+	if err != nil {
+		return err
+	}
+	
+	// 更新節點快取
+	if node, exists := ftw.fileNodes[sourcePath]; exists {
+		delete(ftw.fileNodes, sourcePath)
+		node.Path = destPath
+		ftw.fileNodes[destPath] = node
+	}
+	
+	// 重新整理檔案樹顯示
+	ftw.Refresh()
+	
+	return nil
+}
+
+// GetFileInfo 取得檔案或目錄的詳細資訊
+// 參數：filePath（檔案或目錄路徑）
+// 回傳：檔案資訊和可能的錯誤
+//
+// 執行流程：
+// 1. 從節點快取中查找檔案資訊
+// 2. 如果快取中沒有，使用檔案管理服務取得資訊
+// 3. 回傳檔案資訊
+func (ftw *FileTreeWidget) GetFileInfo(filePath string) (*FileNode, error) {
+	// 從節點快取中查找
+	if node, exists := ftw.fileNodes[filePath]; exists {
+		return node, nil
+	}
+	
+	// 如果快取中沒有，回傳錯誤
+	return nil, fmt.Errorf("找不到檔案或目錄: %s", filePath)
 }

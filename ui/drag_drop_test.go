@@ -44,6 +44,11 @@ func (m *MockFileManagerService) MoveFile(sourcePath, destPath string) error {
 	return m.moveError
 }
 
+// CopyFile 模擬複製檔案
+func (m *MockFileManagerService) CopyFile(sourcePath, destPath string) error {
+	return nil
+}
+
 
 
 // TestNewDragDropManager 測試拖拽管理器的建立

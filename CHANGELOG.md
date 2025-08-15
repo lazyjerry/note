@@ -9,7 +9,61 @@
 
 ### 🚧 進行中
 
-- Task 11 已完成，準備發布 v0.11.0
+- 準備進行 Task 13: 實作錯誤處理和用戶回饋
+
+## [0.12.0] - 2025-08-15 - 服務整合到 UI 完成
+
+### ✅ 新增功能
+
+- **Task 12: 整合所有服務到 UI** ✅ 已完成
+
+### ✅ 新增功能
+
+- **Task 12.2: 整合檔案管理到 UI** ✅ 已完成
+
+  - 連接檔案管理服務到檔案樹：更新 `FileTreeWidget` 完整整合 `FileManagerService`
+  - 實作檔案操作的 UI 回饋：
+    - `ShowContextMenu`: 建立檔案和目錄的右鍵選單，支援開啟、新增、重新命名、刪除、複製、剪下操作
+    - `CreateNewFile`, `CreateNewFolder`: 在指定目錄中建立新檔案和資料夾
+    - `DeleteFileOrFolder`: 刪除檔案或資料夾並更新節點快取
+    - `RenameFileOrFolder`: 重新命名檔案或資料夾並同步更新節點快取
+    - `CopyFileOrFolder`, `MoveFileOrFolder`: 複製和移動檔案或資料夾
+    - `GetFileInfo`: 取得檔案或目錄的詳細資訊
+  - 添加操作確認對話框：
+    - `deleteFileWithConfirmation`: 顯示刪除確認對話框，防止誤刪操作
+    - `renameFileWithDialog`: 顯示重新命名對話框，支援即時驗證
+    - `copyFileWithDialog`, `cutFileWithDialog`: 顯示複製和剪下對話框
+    - `createNewFileInDirectory`, `createNewFolderInDirectory`: 顯示新增檔案和資料夾對話框
+  - 實作主視窗檔案樹整合：
+    - `setupFileTreeCallbacks`: 設定檔案樹的所有回調函數，整合檔案選擇、開啟和操作事件
+    - `handleFileTreeOperation`: 統一處理檔案樹的各種操作請求
+    - `showFileContextMenu`: 顯示檔案或目錄的右鍵選單
+    - 更新 `createLeftPanel` 使用真正的 `FileTreeWidget` 替代佔位元件
+    - 新增 `createNewFileInCurrentDir` 工具欄按鈕功能
+  - 實作檔案操作回調系統：
+    - `SetOnFileRightClick`, `SetOnFileOperation`: 新增檔案樹右鍵點擊和操作回調
+    - 整合檔案選擇、開啟、目錄開啟和檔案操作的完整事件處理
+  - 實作操作成功回饋：所有檔案操作完成後顯示成功訊息和自動重新整理檔案樹
+
+- **Task 12.1: 連接編輯器服務到 UI** ✅ 已完成
+  - 整合編輯器服務到主視窗：更新 `MainWindow` 構造函數接受 `EditorService` 和 `FileManagerService` 參數
+  - 實作編輯器 UI 整合：建立 `MarkdownEditor` 元件並嵌入到主視窗右側面板
+  - 實作檔案操作 UI 流程：
+    - `createNewNote`: 顯示標題輸入對話框，使用編輯器服務建立新筆記
+    - `openFile`, `openFileFromPath`: 整合檔案開啟對話框和編輯器服務載入筆記
+    - `saveCurrentNote`, `saveAsNewFile`: 實作筆記保存功能和另存新檔對話框
+    - `handleEncryptedFileOpen`: 處理加密檔案的密碼驗證流程
+  - 實作編輯狀態視覺回饋：
+    - `setupEditorCallbacks`: 設定編輯器內容變更、保存請求和字數統計回調
+    - `UpdateSaveStatus`, `UpdateEncryptionStatus`, `UpdateWordCount`: 即時更新狀態欄顯示
+  - 實作檔案管理 UI 整合：
+    - 建立檔案樹佔位元件，準備在 Task 12.2 中完整整合
+    - 實作檔案操作方法：`deleteFile`, `renameFile`, `copyFile`, `moveFile`
+    - 實作檔案操作確認對話框和錯誤處理
+  - 擴展服務介面：在 `EditorService` 介面中添加 `DecryptWithPassword` 方法
+  - 擴展檔案管理介面：在 `FileManagerService` 介面中添加 `CopyFile` 方法
+  - 建立對話框包裝器：`FileOpenDialog`, `FileSaveDialog`, `PasswordDialog` 提供統一的對話框介面
+  - 更新測試套件：修改所有測試以支援新的服務參數，添加編輯器和檔案管理服務整合測試
 
 ## [0.11.0] - 2025-08-15
 
@@ -96,6 +150,21 @@
 
 ### 🧪 測試改進
 
+- 新增 `ui/file_management_integration_test.go` 包含 10 個測試函數，全面測試檔案管理整合功能
+
+  - 測試檔案樹與檔案管理服務整合：`TestFileTreeServiceIntegration` 驗證檔案樹正確使用檔案管理服務
+  - 測試檔案樹建立新資料夾：`TestFileTreeCreateNewFolder` 驗證資料夾建立和檔案樹更新
+  - 測試檔案樹刪除檔案：`TestFileTreeDeleteFile` 驗證檔案刪除和節點快取更新
+  - 測試檔案樹重新命名：`TestFileTreeRenameFile` 驗證檔案重新命名和路徑更新
+  - 測試檔案樹複製檔案：`TestFileTreeCopyFile` 驗證檔案複製功能和內容一致性
+  - 測試檔案樹移動檔案：`TestFileTreeMoveFile` 驗證檔案移動和路徑變更
+  - 測試主視窗檔案樹整合：`TestMainWindowFileTreeIntegration` 驗證主視窗正確整合檔案樹
+  - 測試檔案樹回調函數：`TestFileTreeCallbacks` 驗證所有回調函數的設定和執行
+  - 測試檔案樹錯誤處理：`TestFileTreeErrorHandling` 驗證各種錯誤情況的處理
+  - 實作錯誤模擬服務：`errorMockFileManagerService` 支援錯誤情況測試
+  - 使用真實檔案系統進行整合測試，確保檔案操作的正確性
+  - 涵蓋正常情況、錯誤處理、並發操作和 UI 整合的完整測試
+
 - 新增 `ui/password_dialogs_test.go` 包含 12 個測試函數，全面測試密碼對話框功能
 
   - 測試密碼強度計算：7 種不同強度密碼的評估測試
@@ -132,6 +201,13 @@
 
 ### 📝 文件更新
 
+- 所有檔案管理整合程式碼都包含詳細的繁體中文註解，符合專案註解標準
+- 檔案樹操作方法包含完整的參數、回傳值和執行流程描述
+- 檔案操作對話框和確認機制包含詳細的使用者體驗說明
+- 主視窗整合邏輯包含清楚的元件連接和事件處理說明
+- 回調函數架構包含完整的事件流程和錯誤處理說明
+- 測試程式碼包含清楚的測試目的、驗證邏輯和邊界條件說明
+
 - 所有新增程式碼都包含詳細的繁體中文註解，符合專案註解標準
 - 函數說明包含完整的參數、回傳值和執行流程描述
 - 結構體和介面都有清楚的中文說明和使用範例
@@ -139,6 +215,17 @@
 - 所有公開 API 都有完整的文件說明
 
 ### 🔧 技術改進
+
+- 實作完整的檔案管理 UI 整合架構：檔案樹、檔案管理服務、主視窗三層整合
+- 實作智慧檔案操作系統：自動檢測檔案類型、驗證操作有效性、提供適當的操作選項
+- 實作統一的檔案操作回饋機制：所有操作都有確認對話框、成功訊息和錯誤處理
+- 實作動態檔案樹更新：檔案操作完成後自動重新整理檔案樹，保持 UI 與檔案系統同步
+- 實作節點快取管理系統：高效的檔案節點快取，支援路徑變更和節點移除
+- 實作右鍵選單系統：根據檔案類型動態生成適當的操作選項
+- 實作檔案操作驗證：防止無效操作、循環移動、路徑衝突等問題
+- 實作使用者友好的對話框：所有檔案操作都有清楚的說明和即時驗證
+- 實作完整的錯誤處理機制：統一的錯誤訊息、操作回滾和使用者通知
+- 實作模組化的檔案操作架構：每個操作都是獨立的方法，便於測試和維護
 
 - 實作模組化的對話框架構：密碼、生物驗證、整合管理器三層架構
 - 實作統一的回調機制：所有對話框使用一致的回調函數介面

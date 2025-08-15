@@ -12,7 +12,6 @@ import (
 	"fyne.io/fyne/v2/container"     // Fyne 容器佈局套件
 	"fyne.io/fyne/v2/widget"        // Fyne UI 元件套件
 	"fyne.io/fyne/v2/theme"         // Fyne 主題套件
-	"fyne.io/fyne/v2/dialog"        // Fyne 對話框套件
 )
 
 // MarkdownEditor 代表 Markdown 編輯器 UI 元件
@@ -500,17 +499,23 @@ func (me *MarkdownEditor) updateStatus(message string) {
 }
 
 // saveContent 保存內容的內部方法
-// 處理保存操作並顯示適當的回饋
+// 處理保存操作並觸發適當的回調
 //
 // 執行流程：
 // 1. 嘗試保存當前筆記
-// 2. 處理保存結果
-// 3. 顯示成功或錯誤訊息
+// 2. 觸發保存請求回調，讓上層處理結果
 func (me *MarkdownEditor) saveContent() {
 	err := me.SaveNote()
 	if err != nil {
-		// 顯示錯誤對話框
-		dialog.ShowError(err, me.container.Objects[0].(fyne.Window))
+		// 錯誤處理由上層負責，這裡只觸發保存請求回調
+		if me.onSaveRequested != nil {
+			me.onSaveRequested()
+		}
+	} else {
+		// 保存成功，觸發保存請求回調
+		if me.onSaveRequested != nil {
+			me.onSaveRequested()
+		}
 	}
 }
 

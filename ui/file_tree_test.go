@@ -73,6 +73,7 @@ func (m *mockFileManagerService) CreateDirectory(path string) error { return nil
 func (m *mockFileManagerService) DeleteFile(path string) error { return nil }
 func (m *mockFileManagerService) RenameFile(oldPath, newPath string) error { return nil }
 func (m *mockFileManagerService) MoveFile(sourcePath, destPath string) error { return nil }
+func (m *mockFileManagerService) CopyFile(sourcePath, destPath string) error { return nil }
 
 // TestNewFileTreeWidget 測試檔案樹元件的建立
 // 驗證檔案樹元件是否正確建立並包含所有必要的屬性

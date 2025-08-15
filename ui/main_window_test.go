@@ -7,6 +7,8 @@ import (
 	"fyne.io/fyne/v2/test"       // Fyne 測試工具套件
 
 	"mac-notebook-app/internal/models"
+	"mac-notebook-app/internal/services"
+	"mac-notebook-app/internal/repositories"
 )
 
 // TestNewMainWindow 測試主視窗的建立和初始化
@@ -25,8 +27,16 @@ func TestNewMainWindow(t *testing.T) {
 	// 建立測試設定
 	testSettings := models.NewDefaultSettings()
 	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp, testSettings)
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
 	// 驗證主視窗實例不為 nil
 	if mainWindow == nil {
@@ -57,13 +67,21 @@ func TestNewMainWindow(t *testing.T) {
 		t.Errorf("視窗高度應該是 %f，但得到 %f", expectedHeight, size.Height)
 	}
 
-	// 驗證設定和主題服務已初始化
+	// 驗證設定和服務已初始化
 	if mainWindow.settings == nil {
 		t.Error("主視窗的 settings 欄位不應該為 nil")
 	}
 	
 	if mainWindow.themeService == nil {
 		t.Error("主視窗的 themeService 欄位不應該為 nil")
+	}
+	
+	if mainWindow.editorService == nil {
+		t.Error("主視窗的 editorService 欄位不應該為 nil")
+	}
+	
+	if mainWindow.fileManagerService == nil {
+		t.Error("主視窗的 fileManagerService 欄位不應該為 nil")
 	}
 }
 
@@ -83,8 +101,16 @@ func TestMainWindowUIComponents(t *testing.T) {
 	// 建立測試設定
 	testSettings := models.NewDefaultSettings()
 	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp, testSettings)
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
 	// 驗證選單欄已建立
 	if mainWindow.menuBar == nil {
@@ -130,6 +156,15 @@ func TestMainWindowUIComponents(t *testing.T) {
 	if mainWindow.mainSplit == nil {
 		t.Error("主要分割容器不應該為 nil")
 	}
+	
+	// 驗證編輯器和檔案樹元件已建立
+	if mainWindow.editor == nil {
+		t.Error("Markdown 編輯器不應該為 nil")
+	}
+	
+	if mainWindow.fileTree == nil {
+		t.Error("檔案樹元件不應該為 nil")
+	}
 }
 
 // TestMainWindowStatusUpdates 測試主視窗狀態更新功能
@@ -147,8 +182,16 @@ func TestMainWindowStatusUpdates(t *testing.T) {
 	// 建立測試設定
 	testSettings := models.NewDefaultSettings()
 	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp, testSettings)
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
 	// 測試保存狀態更新
 	testSaveStatus := "正在儲存..."
@@ -194,8 +237,16 @@ func TestMainWindowGetWindow(t *testing.T) {
 	// 建立測試設定
 	testSettings := models.NewDefaultSettings()
 	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp, testSettings)
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
 	// 測試 GetWindow 方法
 	window := mainWindow.GetWindow()
@@ -224,8 +275,16 @@ func TestMainWindowSplitRatio(t *testing.T) {
 	// 建立測試設定
 	testSettings := models.NewDefaultSettings()
 	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp, testSettings)
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
 	// 驗證分割容器的偏移量
 	expectedOffset := 0.3
@@ -252,8 +311,16 @@ func TestMainWindowThemeIntegration(t *testing.T) {
 	testSettings := models.NewDefaultSettings()
 	testSettings.Theme = "dark"
 	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp, testSettings)
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
 	// 驗證主題服務已初始化
 	if mainWindow.themeService == nil {
@@ -298,8 +365,16 @@ func TestMainWindowOnThemeChanged(t *testing.T) {
 	// 建立測試設定
 	testSettings := models.NewDefaultSettings()
 	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
 	// 建立主視窗實例
-	mainWindow := NewMainWindow(testApp, testSettings)
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
 	// 測試主題變更監聽器
 	mainWindow.OnThemeChanged("dark")
@@ -307,4 +382,98 @@ func TestMainWindowOnThemeChanged(t *testing.T) {
 	// 驗證方法執行不會產生錯誤
 	// 實際的主題變更效果由 Fyne 框架處理
 	// 這裡主要確保方法能正常執行
+}
+
+// TestMainWindowEditorServiceIntegration 測試編輯器服務整合
+// 驗證編輯器服務是否正確整合到主視窗中
+//
+// 測試項目：
+// 1. 編輯器元件是否正確建立
+// 2. 編輯器服務是否正確注入
+// 3. 編輯器回調函數是否正確設定
+func TestMainWindowEditorServiceIntegration(t *testing.T) {
+	// 建立測試用的 Fyne 應用程式
+	testApp := test.NewApp()
+	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
+	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
+	// 建立主視窗實例
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
+	
+	// 驗證編輯器服務已正確注入
+	if mainWindow.editorService == nil {
+		t.Fatal("編輯器服務不應該為 nil")
+	}
+	
+	// 驗證編輯器元件已建立
+	if mainWindow.editor == nil {
+		t.Fatal("編輯器元件不應該為 nil")
+	}
+	
+	// 驗證編輯器容器已正確嵌入到右側面板
+	if mainWindow.rightPanel == nil {
+		t.Error("右側面板不應該為 nil")
+	}
+	
+	editorContainer := mainWindow.editor.GetContainer()
+	if editorContainer == nil {
+		t.Error("編輯器容器不應該為 nil")
+	}
+}
+
+// TestMainWindowFileManagerServiceIntegration 測試檔案管理服務整合
+// 驗證檔案管理服務是否正確整合到主視窗中
+//
+// 測試項目：
+// 1. 檔案樹元件是否正確建立
+// 2. 檔案管理服務是否正確注入
+// 3. 檔案樹回調函數是否正確設定
+func TestMainWindowFileManagerServiceIntegration(t *testing.T) {
+	// 建立測試用的 Fyne 應用程式
+	testApp := test.NewApp()
+	defer testApp.Quit()
+
+	// 建立測試設定
+	testSettings := models.NewDefaultSettings()
+	
+	// 建立測試服務
+	fileRepo, _ := repositories.NewLocalFileRepository("./test_notes")
+	encryptionSvc := services.NewEncryptionService()
+	passwordSvc := services.NewPasswordService()
+	biometricSvc := services.NewBiometricService()
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
+	
+	// 建立主視窗實例
+	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
+	
+	// 驗證檔案管理服務已正確注入
+	if mainWindow.fileManagerService == nil {
+		t.Fatal("檔案管理服務不應該為 nil")
+	}
+	
+	// 驗證檔案樹元件已建立
+	if mainWindow.fileTree == nil {
+		t.Fatal("檔案樹元件不應該為 nil")
+	}
+	
+	// 驗證檔案樹容器已正確嵌入到左側面板
+	if mainWindow.leftPanel == nil {
+		t.Error("左側面板不應該為 nil")
+	}
+	
+	fileTreeContainer := mainWindow.fileTree.GetContainer()
+	if fileTreeContainer == nil {
+		t.Error("檔案樹容器不應該為 nil")
+	}
 }

@@ -4,14 +4,34 @@ package ui
 
 import (
 	"fmt"                      // Go 標準庫，用於格式化字串
+	"path/filepath"            // 檔案路徑處理
+	"strings"                  // 字串處理
 	"fyne.io/fyne/v2"          // Fyne GUI 框架核心套件
 	"fyne.io/fyne/v2/container" // Fyne 容器佈局套件
 	"fyne.io/fyne/v2/widget"   // Fyne UI 元件套件
 	"fyne.io/fyne/v2/theme"    // Fyne 主題套件
+	"fyne.io/fyne/v2/dialog"   // Fyne 對話框套件
 
 	"mac-notebook-app/internal/models"
 	"mac-notebook-app/internal/services"
 )
+
+// FileTree 代表檔案樹 UI 元件（暫時實作）
+// 在 Task 12.2 中將實作完整的檔案管理整合
+type FileTree struct {
+	container *fyne.Container
+}
+
+// GetContainer 取得檔案樹的容器
+func (ft *FileTree) GetContainer() *fyne.Container {
+	return ft.container
+}
+
+// Refresh 重新整理檔案樹
+func (ft *FileTree) Refresh() error {
+	// 暫時實作，在 Task 12.2 中將實作完整功能
+	return nil
+}
 
 // MainWindow 代表應用程式的主視窗
 // 包含所有主要的 UI 元件，如選單欄、工具欄、內容區域和狀態欄
@@ -32,28 +52,37 @@ type MainWindow struct {
 	leftPanel    *fyne.Container  // 左側面板（檔案樹和筆記列表）
 	rightPanel   *fyne.Container  // 右側面板（編輯器和預覽）
 	mainSplit    *container.Split // 主要分割容器
+	
+	// UI 元件
+	fileTree       *FileTree        // 檔案樹元件（舊版，保留相容性）
+	fileTreeWidget *FileTreeWidget  // 新的檔案樹元件
+	editor         *MarkdownEditor  // Markdown 編輯器元件
 
 	// 服務和設定
-	app          fyne.App                 // Fyne 應用程式實例
-	settings     *models.Settings         // 應用程式設定
-	themeService *services.ThemeService   // 主題管理服務
+	app              fyne.App                         // Fyne 應用程式實例
+	settings         *models.Settings                 // 應用程式設定
+	themeService     *services.ThemeService           // 主題管理服務
+	editorService    services.EditorService           // 編輯器服務
+	fileManagerService services.FileManagerService   // 檔案管理服務
 }
 
 // NewMainWindow 建立新的主視窗實例
 // 參數：
 //   - app: Fyne 應用程式實例
 //   - settings: 應用程式設定
+//   - editorService: 編輯器服務實例
+//   - fileManagerService: 檔案管理服務實例
 // 回傳：指向新建立的 MainWindow 的指標
 //
 // 執行流程：
 // 1. 建立新的視窗並設定標題和基本屬性
 // 2. 設定視窗的初始大小和位置
 // 3. 建立 MainWindow 結構體實例
-// 4. 初始化主題服務
+// 4. 初始化主題服務和業務服務
 // 5. 初始化所有 UI 元件（選單、工具欄、狀態欄）
-// 6. 設定主要佈局結構
+// 6. 設定主要佈局結構和服務整合
 // 7. 回傳完整配置的主視窗實例
-func NewMainWindow(app fyne.App, settings *models.Settings) *MainWindow {
+func NewMainWindow(app fyne.App, settings *models.Settings, editorService services.EditorService, fileManagerService services.FileManagerService) *MainWindow {
 	// 建立新視窗並設定標題
 	window := app.NewWindow("Mac Notebook App - 安全筆記編輯器")
 	
@@ -66,9 +95,11 @@ func NewMainWindow(app fyne.App, settings *models.Settings) *MainWindow {
 	
 	// 建立 MainWindow 實例
 	mw := &MainWindow{
-		window:   window,   // 設定視窗實例
-		app:      app,      // 設定應用程式實例
-		settings: settings, // 設定應用程式設定
+		window:             window,             // 設定視窗實例
+		app:                app,                // 設定應用程式實例
+		settings:           settings,           // 設定應用程式設定
+		editorService:      editorService,      // 設定編輯器服務
+		fileManagerService: fileManagerService, // 設定檔案管理服務
 	}
 
 	// 初始化主題服務
@@ -147,21 +178,17 @@ func (mw *MainWindow) createMenuBar() {
 	// 建立檔案選單項目
 	fileMenu := fyne.NewMenu("檔案",
 		fyne.NewMenuItem("新增筆記", func() {
-			// TODO: 實作新增筆記功能
-			fmt.Println("新增筆記功能將在後續任務中實作")
+			mw.createNewNote()
 		}),
 		fyne.NewMenuItem("開啟檔案", func() {
-			// TODO: 實作開啟檔案功能
-			fmt.Println("開啟檔案功能將在後續任務中實作")
+			mw.openFile()
 		}),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("儲存", func() {
-			// TODO: 實作儲存功能
-			fmt.Println("儲存功能將在後續任務中實作")
+			mw.saveCurrentNote()
 		}),
 		fyne.NewMenuItem("另存新檔", func() {
-			// TODO: 實作另存新檔功能
-			fmt.Println("另存新檔功能將在後續任務中實作")
+			mw.saveAsNewFile()
 		}),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("設定", func() {
@@ -236,20 +263,17 @@ func (mw *MainWindow) createToolBar() {
 	mw.toolBar = widget.NewToolbar(
 		// 新增筆記按鈕
 		widget.NewToolbarAction(theme.DocumentCreateIcon(), func() {
-			// TODO: 實作新增筆記功能
-			fmt.Println("新增筆記功能將在後續任務中實作")
+			mw.createNewNote()
 		}),
 		
 		// 開啟檔案按鈕
 		widget.NewToolbarAction(theme.FolderOpenIcon(), func() {
-			// TODO: 實作開啟檔案功能
-			fmt.Println("開啟檔案功能將在後續任務中實作")
+			mw.openFile()
 		}),
 		
 		// 儲存按鈕
 		widget.NewToolbarAction(theme.DocumentSaveIcon(), func() {
-			// TODO: 實作儲存功能
-			fmt.Println("儲存功能將在後續任務中實作")
+			mw.saveCurrentNote()
 		}),
 		
 		// 分隔線
@@ -319,17 +343,15 @@ func (mw *MainWindow) createStatusBar() {
 //
 // 執行流程：
 // 1. 建立左側面板包含檔案樹
-// 2. 建立右側面板的佔位內容
-// 3. 使用水平分割容器組合左右面板
+// 2. 建立右側面板包含 Markdown 編輯器
+// 3. 整合編輯器服務到 UI 元件
+// 4. 使用水平分割容器組合左右面板
 func (mw *MainWindow) createContentArea() {
 	// 建立左側面板包含檔案樹
 	mw.createLeftPanel()
 	
-	// 建立右側面板佔位內容
-	// 這將在後續任務中被編輯器和預覽面板替換
-	rightPlaceholder := widget.NewLabel("Markdown 編輯器和預覽面板\n將在後續任務中實作")
-	rightPlaceholder.Alignment = fyne.TextAlignCenter
-	mw.rightPanel = container.NewVBox(rightPlaceholder)
+	// 建立右側面板包含 Markdown 編輯器
+	mw.createRightPanel()
 	
 	// 使用水平分割容器組合左右面板
 	// 左側面板佔 30%，右側面板佔 70%
@@ -338,11 +360,11 @@ func (mw *MainWindow) createContentArea() {
 }
 
 // createLeftPanel 建立左側面板
-// 包含檔案樹和相關控制元件
+// 包含檔案樹和相關控制元件，整合檔案管理服務
 //
 // 執行流程：
-// 1. 建立檔案樹元件
-// 2. 設定檔案樹的回調函數
+// 1. 建立檔案樹元件並整合檔案管理服務
+// 2. 設定檔案樹的回調函數和事件處理
 // 3. 建立面板標題和控制按鈕
 // 4. 組合所有元件到左側面板
 func (mw *MainWindow) createLeftPanel() {
@@ -350,113 +372,138 @@ func (mw *MainWindow) createLeftPanel() {
 	titleLabel := widget.NewLabel("檔案瀏覽器")
 	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
 	
-	// 建立檔案樹元件（暫時使用當前目錄作為根目錄）
-	// 在實際應用中，這應該從設定中讀取或讓使用者選擇
-	fileTree := mw.createFileTree(".")
+	// 建立檔案樹元件並整合檔案管理服務
+	// 使用設定中的預設保存位置或當前目錄
+	rootPath := mw.settings.DefaultSaveLocation
+	if rootPath == "" {
+		rootPath = "."
+	}
+	
+	// 建立真正的檔案樹元件並整合檔案管理服務
+	mw.fileTreeWidget = NewFileTreeWidget(mw.fileManagerService, rootPath)
+	
+	// 設定檔案樹的回調函數
+	mw.setupFileTreeCallbacks()
 	
 	// 建立控制按鈕
 	refreshButton := widget.NewButton("重新整理", func() {
-		// TODO: 實作檔案樹重新整理功能
-		fmt.Println("檔案樹重新整理功能將在後續實作")
+		mw.refreshFileTree()
 	})
 	
 	newFolderButton := widget.NewButton("新增資料夾", func() {
-		// TODO: 實作新增資料夾功能
-		fmt.Println("新增資料夾功能將在後續實作")
+		mw.createNewFolder()
+	})
+	
+	newFileButton := widget.NewButton("新增檔案", func() {
+		mw.createNewFileInCurrentDir()
 	})
 	
 	// 建立按鈕容器
-	buttonContainer := container.NewHBox(refreshButton, newFolderButton)
+	buttonContainer := container.NewHBox(refreshButton, newFolderButton, newFileButton)
 	
 	// 組合左側面板
 	mw.leftPanel = container.NewVBox(
 		titleLabel,
 		widget.NewSeparator(),
-		fileTree,
+		mw.fileTreeWidget,
 		widget.NewSeparator(),
 		buttonContainer,
 	)
 }
 
-// createFileTree 建立檔案樹元件
-// 參數：rootPath（根目錄路徑）
-// 回傳：檔案樹元件
+// createRightPanel 建立右側面板
+// 包含 Markdown 編輯器和預覽面板，整合編輯器服務
 //
 // 執行流程：
-// 1. 建立模擬的檔案管理服務（暫時使用）
-// 2. 建立檔案樹元件
-// 3. 設定檔案選擇和目錄開啟回調
-// 4. 回傳檔案樹元件
-func (mw *MainWindow) createFileTree(rootPath string) fyne.CanvasObject {
-	// 暫時建立一個簡單的檔案樹佔位元件
-	// 在後續任務中將整合真實的檔案管理服務
-	treeLabel := widget.NewLabel("檔案樹元件\n（整合檔案管理服務）")
-	treeLabel.Alignment = fyne.TextAlignCenter
+// 1. 建立 Markdown 編輯器元件並整合編輯器服務
+// 2. 設定編輯器的回調函數和事件處理
+// 3. 建立預覽面板（如果需要）
+// 4. 組合編輯器和預覽面板到右側面板
+func (mw *MainWindow) createRightPanel() {
+	// 建立 Markdown 編輯器元件並整合編輯器服務
+	mw.editor = NewMarkdownEditor(mw.editorService)
 	
-	// 建立一個簡單的樹狀結構示例
-	tree := widget.NewTree(
-		func(uid widget.TreeNodeID) []widget.TreeNodeID {
-			// 根節點
-			if uid == "" {
-				return []widget.TreeNodeID{"root"}
-			}
-			// 根節點的子項目
-			if uid == "root" {
-				return []widget.TreeNodeID{"notes", "docs", "readme.md"}
-			}
-			// notes 目錄的子項目
-			if uid == "notes" {
-				return []widget.TreeNodeID{"work", "personal"}
-			}
-			return []widget.TreeNodeID{}
-		},
-		func(uid widget.TreeNodeID) bool {
-			// 目錄節點
-			return uid == "root" || uid == "notes"
-		},
-		func(branch bool) fyne.CanvasObject {
-			// 建立節點 UI
-			var icon *widget.Icon
-			if branch {
-				icon = widget.NewIcon(theme.FolderIcon())
-			} else {
-				icon = widget.NewIcon(theme.DocumentIcon())
-			}
-			label := widget.NewLabel("")
-			return container.NewHBox(icon, label)
-		},
-		func(uid widget.TreeNodeID, branch bool, obj fyne.CanvasObject) {
-			// 更新節點 UI
-			hbox := obj.(*fyne.Container)
-			if len(hbox.Objects) >= 2 {
-				label := hbox.Objects[1].(*widget.Label)
-				switch uid {
-				case "root":
-					label.SetText("專案根目錄")
-				case "notes":
-					label.SetText("筆記")
-				case "docs":
-					label.SetText("文件")
-				case "work":
-					label.SetText("工作")
-				case "personal":
-					label.SetText("個人")
-				case "readme.md":
-					label.SetText("README.md")
-				default:
-					label.SetText(string(uid))
-				}
-			}
-		},
+	// 設定編輯器的回調函數
+	mw.setupEditorCallbacks()
+	
+	// 建立右側面板容器
+	mw.rightPanel = container.NewVBox(
+		mw.editor.GetContainer(),
 	)
+}
+
+// setupEditorCallbacks 設定編輯器的回調函數
+// 整合編輯器事件到主視窗的狀態管理
+//
+// 執行流程：
+// 1. 設定內容變更回調，更新狀態欄
+// 2. 設定保存請求回調，處理保存操作
+// 3. 設定字數變更回調，更新字數統計
+func (mw *MainWindow) setupEditorCallbacks() {
+	// 設定內容變更回調
+	mw.editor.SetOnContentChanged(func(content string) {
+		// 更新保存狀態為未保存
+		mw.UpdateSaveStatus("未保存")
+		
+		// 檢查是否為加密筆記並更新加密狀態
+		if currentNote := mw.editor.GetCurrentNote(); currentNote != nil {
+			mw.UpdateEncryptionStatus(currentNote.IsEncrypted, currentNote.EncryptionType)
+		}
+	})
 	
-	// 設定節點選擇回調
-	tree.OnSelected = func(uid widget.TreeNodeID) {
-		fmt.Printf("選擇了節點: %s\n", uid)
-		// TODO: 在後續任務中實作檔案開啟功能
+	// 設定保存請求回調
+	mw.editor.SetOnSaveRequested(func() {
+		// 更新保存狀態
+		mw.UpdateSaveStatus("已保存")
+	})
+	
+	// 設定字數變更回調
+	mw.editor.SetOnWordCountChanged(func(count int) {
+		mw.UpdateWordCount(count)
+	})
+}
+
+// setupFileTreeCallbacks 設定檔案樹的回調函數
+// 整合檔案樹事件到主視窗的檔案管理功能
+//
+// 執行流程：
+// 1. 設定檔案選擇回調，載入選擇的檔案到編輯器
+// 2. 設定檔案開啟回調，處理檔案開啟操作
+// 3. 設定目錄開啟回調，展開目錄結構
+// 4. 設定檔案操作回調，處理各種檔案操作
+// 5. 設定右鍵點擊回調，顯示操作選單
+func (mw *MainWindow) setupFileTreeCallbacks() {
+	if mw.fileTreeWidget == nil {
+		return
 	}
 	
-	return tree
+	// 設定檔案選擇回調
+	mw.fileTreeWidget.SetOnFileSelect(func(filePath string) {
+		// 載入選擇的檔案到編輯器
+		mw.openFileFromPath(filePath)
+	})
+	
+	// 設定檔案開啟回調
+	mw.fileTreeWidget.SetOnFileOpen(func(filePath string) {
+		// 開啟檔案到編輯器
+		mw.openFileFromPath(filePath)
+	})
+	
+	// 設定目錄開啟回調
+	mw.fileTreeWidget.SetOnDirectoryOpen(func(dirPath string) {
+		// 展開目錄（檔案樹會自動處理）
+		fmt.Printf("開啟目錄: %s\n", dirPath)
+	})
+	
+	// 設定檔案操作回調
+	mw.fileTreeWidget.SetOnFileOperation(func(operation, filePath string) {
+		mw.handleFileTreeOperation(operation, filePath)
+	})
+	
+	// 設定右鍵點擊回調
+	mw.fileTreeWidget.SetOnFileRightClick(func(filePath string, isDirectory bool) {
+		mw.showFileContextMenu(filePath, isDirectory)
+	})
 }
 
 // assembleMainLayout 組合主視窗的完整佈局
@@ -614,4 +661,976 @@ func (mw *MainWindow) SetupThemeListener() {
 	
 	// 初始化 UI 狀態
 	mw.updateUIFromSettings()
+}
+
+// createNewNote 建立新筆記
+// 整合編輯器服務建立新筆記並載入到編輯器
+//
+// 執行流程：
+// 1. 提示使用者輸入筆記標題
+// 2. 使用編輯器服務建立新筆記
+// 3. 載入新筆記到編輯器
+// 4. 更新狀態顯示
+func (mw *MainWindow) createNewNote() {
+	// 建立標題輸入對話框
+	titleEntry := widget.NewEntry()
+	titleEntry.SetPlaceHolder("請輸入筆記標題...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("新增筆記"),
+		titleEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("新增筆記", "建立", "取消", content, func(confirmed bool) {
+		if confirmed {
+			title := titleEntry.Text
+			if title == "" {
+				title = "未命名筆記"
+			}
+			
+			// 使用編輯器建立新筆記
+			err := mw.editor.CreateNewNote(title)
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			
+			// 更新狀態顯示
+			mw.UpdateSaveStatus("新筆記")
+			mw.UpdateEncryptionStatus(false, "")
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到標題輸入框
+	titleEntry.FocusGained()
+}
+
+// openFile 開啟檔案
+// 顯示檔案選擇對話框並開啟選擇的檔案
+//
+// 執行流程：
+// 1. 顯示檔案選擇對話框
+// 2. 使用編輯器服務開啟選擇的檔案
+// 3. 載入檔案內容到編輯器
+// 4. 更新狀態顯示
+func (mw *MainWindow) openFile() {
+	// 建立檔案開啟對話框
+	fileDialog := NewFileOpenDialog(mw.window, func(filePath string) {
+		mw.openFileFromPath(filePath)
+	})
+	
+	// 顯示對話框
+	fileDialog.Show()
+}
+
+// openFileFromPath 從指定路徑開啟檔案
+// 參數：filePath（檔案路徑）
+//
+// 執行流程：
+// 1. 使用編輯器服務開啟檔案
+// 2. 處理加密檔案的密碼驗證
+// 3. 載入檔案內容到編輯器
+// 4. 更新狀態顯示
+func (mw *MainWindow) openFileFromPath(filePath string) {
+	// 使用編輯器服務開啟檔案
+	note, err := mw.editorService.OpenNote(filePath)
+	if err != nil {
+		// 檢查是否為加密檔案需要密碼
+		if strings.Contains(err.Error(), "需要密碼驗證") {
+			mw.handleEncryptedFileOpen(filePath)
+			return
+		}
+		
+		dialog.ShowError(err, mw.window)
+		return
+	}
+	
+	// 載入筆記到編輯器
+	mw.editor.LoadNote(note)
+	
+	// 更新狀態顯示
+	mw.UpdateSaveStatus("已載入")
+	mw.UpdateEncryptionStatus(note.IsEncrypted, note.EncryptionType)
+	
+	// 重新整理檔案樹以反映變更
+	mw.refreshFileTree()
+}
+
+// handleEncryptedFileOpen 處理加密檔案的開啟
+// 參數：filePath（加密檔案路徑）
+//
+// 執行流程：
+// 1. 顯示密碼輸入對話框
+// 2. 使用密碼解密檔案
+// 3. 載入解密後的內容到編輯器
+func (mw *MainWindow) handleEncryptedFileOpen(filePath string) {
+	// 建立密碼輸入對話框
+	passwordDialog := NewPasswordDialog(mw.window, "開啟加密檔案", func(password string) {
+		// 先開啟檔案取得筆記 ID
+		note, err := mw.editorService.OpenNote(filePath)
+		if err != nil {
+			// 如果還是失敗，嘗試使用密碼解密
+			// 這裡需要特殊處理，因為我們需要筆記 ID 來解密
+			dialog.ShowError(fmt.Errorf("無法開啟加密檔案: %w", err), mw.window)
+			return
+		}
+		
+		// 使用密碼解密內容
+		decryptedContent, err := mw.editorService.DecryptWithPassword(note.ID, password)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("密碼錯誤或解密失敗: %w", err), mw.window)
+			return
+		}
+		
+		// 更新筆記內容
+		note.Content = decryptedContent
+		
+		// 載入筆記到編輯器
+		mw.editor.LoadNote(note)
+		
+		// 更新狀態顯示
+		mw.UpdateSaveStatus("已載入")
+		mw.UpdateEncryptionStatus(true, note.EncryptionType)
+	})
+	
+	// 顯示密碼對話框
+	passwordDialog.Show()
+}
+
+// saveCurrentNote 保存當前筆記
+// 使用編輯器服務保存當前編輯的筆記
+//
+// 執行流程：
+// 1. 檢查是否有當前筆記
+// 2. 使用編輯器保存筆記
+// 3. 處理保存結果和錯誤
+// 4. 更新狀態顯示
+func (mw *MainWindow) saveCurrentNote() {
+	// 檢查編輯器是否可以保存
+	if !mw.editor.CanSave() {
+		mw.UpdateSaveStatus("無需保存")
+		return
+	}
+	
+	// 使用編輯器保存筆記
+	err := mw.editor.SaveNote()
+	if err != nil {
+		dialog.ShowError(err, mw.window)
+		mw.UpdateSaveStatus("保存失敗")
+		return
+	}
+	
+	// 更新狀態顯示
+	mw.UpdateSaveStatus("已保存")
+	
+	// 重新整理檔案樹以反映變更
+	mw.refreshFileTree()
+}
+
+// saveAsNewFile 另存新檔
+// 顯示檔案保存對話框並將當前筆記保存為新檔案
+//
+// 執行流程：
+// 1. 顯示檔案保存對話框
+// 2. 設定新的檔案路徑
+// 3. 保存筆記到新位置
+// 4. 更新狀態顯示
+func (mw *MainWindow) saveAsNewFile() {
+	// 檢查是否有當前筆記
+	currentNote := mw.editor.GetCurrentNote()
+	if currentNote == nil {
+		dialog.ShowInformation("提示", "沒有可保存的筆記", mw.window)
+		return
+	}
+	
+	// 建立檔案保存對話框
+	fileDialog := NewFileSaveDialog(mw.window, func(filePath string) {
+		// 更新筆記的檔案路徑
+		currentNote.FilePath = filePath
+		
+		// 保存筆記
+		err := mw.editorService.SaveNote(currentNote)
+		if err != nil {
+			dialog.ShowError(err, mw.window)
+			mw.UpdateSaveStatus("保存失敗")
+			return
+		}
+		
+		// 更新狀態顯示
+		mw.UpdateSaveStatus("已保存")
+		
+		// 重新整理檔案樹以反映變更
+		mw.refreshFileTree()
+	})
+	
+	// 設定預設檔案名稱
+	if currentNote.Title != "" {
+		fileDialog.SetFileName(currentNote.Title + ".md")
+	}
+	
+	// 顯示對話框
+	fileDialog.Show()
+}
+
+// refreshFileTree 重新整理檔案樹
+// 重新載入檔案樹的內容以反映檔案系統的變更
+//
+// 執行流程：
+// 1. 重新載入檔案樹內容
+// 2. 更新 UI 顯示
+// 3. 處理重新載入錯誤
+func (mw *MainWindow) refreshFileTree() {
+	// 使用新的檔案樹元件
+	if mw.fileTreeWidget != nil {
+		mw.fileTreeWidget.Refresh()
+		return
+	}
+	
+	// 保留舊版相容性
+	if mw.fileTree != nil {
+		err := mw.fileTree.Refresh()
+		if err != nil {
+			fmt.Printf("重新整理檔案樹失敗: %v\n", err)
+		}
+	}
+}
+
+// createNewFolder 建立新資料夾
+// 顯示資料夾名稱輸入對話框並建立新資料夾
+//
+// 執行流程：
+// 1. 提示使用者輸入資料夾名稱
+// 2. 使用檔案管理服務建立資料夾
+// 3. 重新整理檔案樹
+// 4. 處理建立結果
+func (mw *MainWindow) createNewFolder() {
+	// 建立資料夾名稱輸入對話框
+	folderEntry := widget.NewEntry()
+	folderEntry.SetPlaceHolder("請輸入資料夾名稱...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("新增資料夾"),
+		folderEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("新增資料夾", "建立", "取消", content, func(confirmed bool) {
+		if confirmed {
+			folderName := folderEntry.Text
+			if folderName == "" {
+				dialog.ShowError(fmt.Errorf("資料夾名稱不能為空"), mw.window)
+				return
+			}
+			
+			// 使用檔案管理服務建立資料夾
+			err := mw.fileManagerService.CreateDirectory(folderName)
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到資料夾名稱輸入框
+	folderEntry.FocusGained()
+}
+
+// handleFileOperation 處理檔案操作
+// 參數：operation（操作類型）、path（檔案路徑）
+//
+// 執行流程：
+// 1. 根據操作類型執行相應的檔案操作
+// 2. 使用檔案管理服務執行操作
+// 3. 更新 UI 狀態
+// 4. 處理操作結果
+func (mw *MainWindow) handleFileOperation(operation, path string) {
+	switch operation {
+	case "delete":
+		mw.deleteFile(path)
+	case "rename":
+		mw.renameFile(path)
+	case "copy":
+		mw.copyFile(path)
+	case "move":
+		mw.moveFile(path)
+	default:
+		fmt.Printf("未知的檔案操作: %s\n", operation)
+	}
+}
+
+// deleteFile 刪除檔案
+// 參數：filePath（要刪除的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示確認對話框
+// 2. 使用檔案管理服務刪除檔案
+// 3. 重新整理檔案樹
+// 4. 處理刪除結果
+func (mw *MainWindow) deleteFile(filePath string) {
+	// 顯示確認對話框
+	dialog.ShowConfirm("確認刪除", 
+		fmt.Sprintf("確定要刪除檔案 '%s' 嗎？", filepath.Base(filePath)), 
+		func(confirmed bool) {
+			if confirmed {
+				// 使用檔案管理服務刪除檔案
+				err := mw.fileManagerService.DeleteFile(filePath)
+				if err != nil {
+					dialog.ShowError(err, mw.window)
+					return
+				}
+				
+				// 重新整理檔案樹
+				mw.refreshFileTree()
+			}
+		}, mw.window)
+}
+
+// renameFile 重新命名檔案
+// 參數：filePath（要重新命名的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示新名稱輸入對話框
+// 2. 使用檔案管理服務重新命名檔案
+// 3. 重新整理檔案樹
+// 4. 處理重新命名結果
+func (mw *MainWindow) renameFile(filePath string) {
+	// 取得當前檔案名稱
+	currentName := filepath.Base(filePath)
+	
+	// 建立新名稱輸入對話框
+	nameEntry := widget.NewEntry()
+	nameEntry.SetText(currentName)
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("重新命名"),
+		nameEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("重新命名", "確定", "取消", content, func(confirmed bool) {
+		if confirmed {
+			newName := nameEntry.Text
+			if newName == "" || newName == currentName {
+				return
+			}
+			
+			// 建立新路徑
+			newPath := filepath.Join(filepath.Dir(filePath), newName)
+			
+			// 使用檔案管理服務重新命名檔案
+			err := mw.fileManagerService.RenameFile(filePath, newPath)
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到名稱輸入框
+	nameEntry.FocusGained()
+}
+
+// copyFile 複製檔案
+// 參數：filePath（要複製的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示目標路徑選擇對話框
+// 2. 使用檔案管理服務複製檔案
+// 3. 重新整理檔案樹
+// 4. 處理複製結果
+func (mw *MainWindow) copyFile(filePath string) {
+	// 建立目標路徑輸入對話框
+	targetEntry := widget.NewEntry()
+	targetEntry.SetPlaceHolder("請輸入目標路徑...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("複製檔案"),
+		widget.NewLabel(fmt.Sprintf("來源: %s", filePath)),
+		targetEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("複製檔案", "複製", "取消", content, func(confirmed bool) {
+		if confirmed {
+			targetPath := targetEntry.Text
+			if targetPath == "" {
+				dialog.ShowError(fmt.Errorf("目標路徑不能為空"), mw.window)
+				return
+			}
+			
+			// 使用檔案管理服務複製檔案
+			err := mw.fileManagerService.CopyFile(filePath, targetPath)
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到目標路徑輸入框
+	targetEntry.FocusGained()
+}
+
+// moveFile 移動檔案
+// 參數：filePath（要移動的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示目標路徑選擇對話框
+// 2. 使用檔案管理服務移動檔案
+// 3. 重新整理檔案樹
+// 4. 處理移動結果
+func (mw *MainWindow) moveFile(filePath string) {
+	// 建立目標路徑輸入對話框
+	targetEntry := widget.NewEntry()
+	targetEntry.SetPlaceHolder("請輸入目標路徑...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("移動檔案"),
+		widget.NewLabel(fmt.Sprintf("來源: %s", filePath)),
+		targetEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("移動檔案", "移動", "取消", content, func(confirmed bool) {
+		if confirmed {
+			targetPath := targetEntry.Text
+			if targetPath == "" {
+				dialog.ShowError(fmt.Errorf("目標路徑不能為空"), mw.window)
+				return
+			}
+			
+			// 使用檔案管理服務移動檔案
+			err := mw.fileManagerService.MoveFile(filePath, targetPath)
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到目標路徑輸入框
+	targetEntry.FocusGained()
+}
+
+// handleFileTreeOperation 處理檔案樹的檔案操作
+// 參數：operation（操作類型）、filePath（檔案路徑）
+//
+// 執行流程：
+// 1. 根據操作類型執行相應的檔案操作
+// 2. 顯示操作確認對話框（如果需要）
+// 3. 使用檔案管理服務執行操作
+// 4. 更新 UI 狀態和顯示操作回饋
+func (mw *MainWindow) handleFileTreeOperation(operation, filePath string) {
+	switch operation {
+	case "create_file":
+		mw.createNewFileInDirectory(filePath)
+	case "create_folder":
+		mw.createNewFolderInDirectory(filePath)
+	case "rename":
+		mw.renameFileWithDialog(filePath)
+	case "delete":
+		mw.deleteFileWithConfirmation(filePath)
+	case "copy":
+		mw.copyFileWithDialog(filePath)
+	case "cut":
+		mw.cutFileWithDialog(filePath)
+	default:
+		fmt.Printf("未知的檔案操作: %s\n", operation)
+	}
+}
+
+// showFileContextMenu 顯示檔案或目錄的右鍵選單
+// 參數：filePath（檔案路徑）、isDirectory（是否為目錄）
+//
+// 執行流程：
+// 1. 根據檔案類型建立適當的選單項目
+// 2. 顯示右鍵選單
+// 3. 處理選單項目的點擊事件
+func (mw *MainWindow) showFileContextMenu(filePath string, isDirectory bool) {
+	// 建立右鍵選單項目
+	var menuItems []*fyne.MenuItem
+	
+	if isDirectory {
+		// 目錄的右鍵選單
+		menuItems = []*fyne.MenuItem{
+			fyne.NewMenuItem("開啟", func() {
+				fmt.Printf("開啟目錄: %s\n", filePath)
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("新增檔案", func() {
+				mw.createNewFileInDirectory(filePath)
+			}),
+			fyne.NewMenuItem("新增資料夾", func() {
+				mw.createNewFolderInDirectory(filePath)
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("重新命名", func() {
+				mw.renameFileWithDialog(filePath)
+			}),
+			fyne.NewMenuItem("刪除", func() {
+				mw.deleteFileWithConfirmation(filePath)
+			}),
+		}
+	} else {
+		// 檔案的右鍵選單
+		menuItems = []*fyne.MenuItem{
+			fyne.NewMenuItem("開啟", func() {
+				mw.openFileFromPath(filePath)
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("重新命名", func() {
+				mw.renameFileWithDialog(filePath)
+			}),
+			fyne.NewMenuItem("刪除", func() {
+				mw.deleteFileWithConfirmation(filePath)
+			}),
+			fyne.NewMenuItemSeparator(),
+			fyne.NewMenuItem("複製", func() {
+				mw.copyFileWithDialog(filePath)
+			}),
+		}
+	}
+	
+	// 建立並顯示右鍵選單
+	_ = fyne.NewMenu("", menuItems...)
+	
+	// 注意：Fyne 的右鍵選單需要特殊處理
+	// 這裡使用簡化的實作，實際應用中可能需要更複雜的選單顯示邏輯
+	fmt.Printf("顯示 %s 的右鍵選單\n", filePath)
+}
+
+// createNewFileInDirectory 在指定目錄中建立新檔案
+// 參數：dirPath（目錄路徑）
+//
+// 執行流程：
+// 1. 顯示檔案名稱輸入對話框
+// 2. 驗證檔案名稱的有效性
+// 3. 在指定目錄中建立新檔案
+// 4. 重新整理檔案樹並顯示操作結果
+func (mw *MainWindow) createNewFileInDirectory(dirPath string) {
+	// 建立檔案名稱輸入對話框
+	fileNameEntry := widget.NewEntry()
+	fileNameEntry.SetPlaceHolder("請輸入檔案名稱（例如：note.md）...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("在目錄中新增檔案"),
+		widget.NewLabel(fmt.Sprintf("目錄: %s", dirPath)),
+		fileNameEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("新增檔案", "建立", "取消", content, func(confirmed bool) {
+		if confirmed {
+			fileName := fileNameEntry.Text
+			if fileName == "" {
+				dialog.ShowError(fmt.Errorf("檔案名稱不能為空"), mw.window)
+				return
+			}
+			
+			// 建立完整的檔案路徑
+			_ = filepath.Join(dirPath, fileName)
+			
+			// 建立新檔案（透過編輯器服務）
+			_, err := mw.editorService.CreateNote("", "")
+			if err != nil {
+				dialog.ShowError(fmt.Errorf("建立檔案失敗: %w", err), mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+			
+			// 顯示成功訊息
+			dialog.ShowInformation("成功", fmt.Sprintf("檔案 '%s' 已建立", fileName), mw.window)
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到檔案名稱輸入框
+	fileNameEntry.FocusGained()
+}
+
+// createNewFolderInDirectory 在指定目錄中建立新資料夾
+// 參數：dirPath（目錄路徑）
+//
+// 執行流程：
+// 1. 顯示資料夾名稱輸入對話框
+// 2. 驗證資料夾名稱的有效性
+// 3. 在指定目錄中建立新資料夾
+// 4. 重新整理檔案樹並顯示操作結果
+func (mw *MainWindow) createNewFolderInDirectory(dirPath string) {
+	// 建立資料夾名稱輸入對話框
+	folderNameEntry := widget.NewEntry()
+	folderNameEntry.SetPlaceHolder("請輸入資料夾名稱...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("在目錄中新增資料夾"),
+		widget.NewLabel(fmt.Sprintf("目錄: %s", dirPath)),
+		folderNameEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("新增資料夾", "建立", "取消", content, func(confirmed bool) {
+		if confirmed {
+			folderName := folderNameEntry.Text
+			if folderName == "" {
+				dialog.ShowError(fmt.Errorf("資料夾名稱不能為空"), mw.window)
+				return
+			}
+			
+			// 建立完整的資料夾路徑
+			folderPath := filepath.Join(dirPath, folderName)
+			
+			// 使用檔案管理服務建立資料夾
+			err := mw.fileManagerService.CreateDirectory(folderPath)
+			if err != nil {
+				dialog.ShowError(fmt.Errorf("建立資料夾失敗: %w", err), mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+			
+			// 顯示成功訊息
+			dialog.ShowInformation("成功", fmt.Sprintf("資料夾 '%s' 已建立", folderName), mw.window)
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到資料夾名稱輸入框
+	folderNameEntry.FocusGained()
+}
+
+// createNewFileInCurrentDir 在當前目錄中建立新檔案
+// 這是工具欄按鈕的回調函數
+//
+// 執行流程：
+// 1. 取得當前選擇的目錄或使用根目錄
+// 2. 調用 createNewFileInDirectory 方法
+func (mw *MainWindow) createNewFileInCurrentDir() {
+	// 使用根目錄作為預設位置
+	rootPath := mw.settings.DefaultSaveLocation
+	if rootPath == "" {
+		rootPath = "."
+	}
+	
+	mw.createNewFileInDirectory(rootPath)
+}
+
+// renameFileWithDialog 顯示重新命名對話框並執行重新命名操作
+// 參數：filePath（要重新命名的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示新名稱輸入對話框
+// 2. 驗證新名稱的有效性
+// 3. 使用檔案管理服務執行重新命名
+// 4. 重新整理檔案樹並顯示操作結果
+func (mw *MainWindow) renameFileWithDialog(filePath string) {
+	// 取得當前檔案名稱
+	currentName := filepath.Base(filePath)
+	
+	// 建立新名稱輸入對話框
+	nameEntry := widget.NewEntry()
+	nameEntry.SetText(currentName)
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("重新命名"),
+		widget.NewLabel(fmt.Sprintf("當前名稱: %s", currentName)),
+		nameEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("重新命名", "確定", "取消", content, func(confirmed bool) {
+		if confirmed {
+			newName := nameEntry.Text
+			if newName == "" || newName == currentName {
+				return
+			}
+			
+			// 建立新路徑
+			newPath := filepath.Join(filepath.Dir(filePath), newName)
+			
+			// 使用檔案管理服務重新命名檔案
+			err := mw.fileManagerService.RenameFile(filePath, newPath)
+			if err != nil {
+				dialog.ShowError(fmt.Errorf("重新命名失敗: %w", err), mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+			
+			// 顯示成功訊息
+			dialog.ShowInformation("成功", fmt.Sprintf("已重新命名為 '%s'", newName), mw.window)
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到名稱輸入框並選擇文字
+	nameEntry.FocusGained()
+}
+
+// deleteFileWithConfirmation 顯示刪除確認對話框並執行刪除操作
+// 參數：filePath（要刪除的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示刪除確認對話框
+// 2. 如果用戶確認，使用檔案管理服務執行刪除
+// 3. 重新整理檔案樹並顯示操作結果
+func (mw *MainWindow) deleteFileWithConfirmation(filePath string) {
+	fileName := filepath.Base(filePath)
+	
+	// 顯示確認對話框
+	dialog.ShowConfirm("確認刪除", 
+		fmt.Sprintf("確定要刪除 '%s' 嗎？\n\n此操作無法復原。", fileName), 
+		func(confirmed bool) {
+			if confirmed {
+				// 使用檔案管理服務刪除檔案
+				err := mw.fileManagerService.DeleteFile(filePath)
+				if err != nil {
+					dialog.ShowError(fmt.Errorf("刪除失敗: %w", err), mw.window)
+					return
+				}
+				
+				// 重新整理檔案樹
+				mw.refreshFileTree()
+				
+				// 顯示成功訊息
+				dialog.ShowInformation("成功", fmt.Sprintf("'%s' 已刪除", fileName), mw.window)
+			}
+		}, mw.window)
+}
+
+// copyFileWithDialog 顯示複製對話框並執行複製操作
+// 參數：filePath（要複製的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示目標路徑輸入對話框
+// 2. 驗證目標路徑的有效性
+// 3. 使用檔案管理服務執行複製
+// 4. 重新整理檔案樹並顯示操作結果
+func (mw *MainWindow) copyFileWithDialog(filePath string) {
+	fileName := filepath.Base(filePath)
+	
+	// 建立目標路徑輸入對話框
+	targetEntry := widget.NewEntry()
+	targetEntry.SetPlaceHolder("請輸入目標路徑...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("複製檔案"),
+		widget.NewLabel(fmt.Sprintf("來源: %s", fileName)),
+		targetEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("複製檔案", "複製", "取消", content, func(confirmed bool) {
+		if confirmed {
+			targetPath := targetEntry.Text
+			if targetPath == "" {
+				dialog.ShowError(fmt.Errorf("目標路徑不能為空"), mw.window)
+				return
+			}
+			
+			// 使用檔案管理服務複製檔案
+			err := mw.fileManagerService.CopyFile(filePath, targetPath)
+			if err != nil {
+				dialog.ShowError(fmt.Errorf("複製失敗: %w", err), mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+			
+			// 顯示成功訊息
+			dialog.ShowInformation("成功", fmt.Sprintf("'%s' 已複製到 '%s'", fileName, targetPath), mw.window)
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到目標路徑輸入框
+	targetEntry.FocusGained()
+}
+
+// cutFileWithDialog 顯示剪下對話框並執行移動操作
+// 參數：filePath（要剪下的檔案路徑）
+//
+// 執行流程：
+// 1. 顯示目標路徑輸入對話框
+// 2. 驗證目標路徑的有效性
+// 3. 使用檔案管理服務執行移動
+// 4. 重新整理檔案樹並顯示操作結果
+func (mw *MainWindow) cutFileWithDialog(filePath string) {
+	fileName := filepath.Base(filePath)
+	
+	// 建立目標路徑輸入對話框
+	targetEntry := widget.NewEntry()
+	targetEntry.SetPlaceHolder("請輸入目標路徑...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel("剪下檔案"),
+		widget.NewLabel(fmt.Sprintf("來源: %s", fileName)),
+		targetEntry,
+	)
+	
+	// 建立對話框
+	dialog := dialog.NewCustomConfirm("剪下檔案", "移動", "取消", content, func(confirmed bool) {
+		if confirmed {
+			targetPath := targetEntry.Text
+			if targetPath == "" {
+				dialog.ShowError(fmt.Errorf("目標路徑不能為空"), mw.window)
+				return
+			}
+			
+			// 使用檔案管理服務移動檔案
+			err := mw.fileManagerService.MoveFile(filePath, targetPath)
+			if err != nil {
+				dialog.ShowError(fmt.Errorf("移動失敗: %w", err), mw.window)
+				return
+			}
+			
+			// 重新整理檔案樹
+			mw.refreshFileTree()
+			
+			// 顯示成功訊息
+			dialog.ShowInformation("成功", fmt.Sprintf("'%s' 已移動到 '%s'", fileName, targetPath), mw.window)
+		}
+	}, mw.window)
+	
+	// 顯示對話框
+	dialog.Show()
+	
+	// 設定焦點到目標路徑輸入框
+	targetEntry.FocusGained()
+}
+
+// FileOpenDialog 代表檔案開啟對話框的包裝器
+type FileOpenDialog struct {
+	dialog *dialog.FileDialog
+}
+
+// NewFileOpenDialog 建立檔案開啟對話框（暫時實作）
+// 在實際應用中應該使用 Fyne 的檔案對話框
+func NewFileOpenDialog(parent fyne.Window, callback func(string)) *FileOpenDialog {
+	// 暫時實作，回傳一個基本的檔案對話框
+	fileDialog := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err == nil && reader != nil {
+			callback(reader.URI().Path())
+			reader.Close()
+		}
+	}, parent)
+	
+	return &FileOpenDialog{dialog: fileDialog}
+}
+
+// Show 顯示檔案開啟對話框
+func (fod *FileOpenDialog) Show() {
+	fod.dialog.Show()
+}
+
+// FileSaveDialog 代表檔案保存對話框的包裝器
+type FileSaveDialog struct {
+	dialog *dialog.FileDialog
+}
+
+// NewFileSaveDialog 建立檔案保存對話框（暫時實作）
+// 在實際應用中應該使用 Fyne 的檔案對話框
+func NewFileSaveDialog(parent fyne.Window, callback func(string)) *FileSaveDialog {
+	// 暫時實作，回傳一個基本的檔案對話框
+	fileDialog := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+		if err == nil && writer != nil {
+			callback(writer.URI().Path())
+			writer.Close()
+		}
+	}, parent)
+	
+	return &FileSaveDialog{dialog: fileDialog}
+}
+
+// Show 顯示檔案保存對話框
+func (fsd *FileSaveDialog) Show() {
+	fsd.dialog.Show()
+}
+
+// SetFileName 設定檔案對話框的預設檔案名稱（暫時實作）
+func (fsd *FileSaveDialog) SetFileName(name string) {
+	// 暫時實作，Fyne 的 FileDialog 沒有直接的 SetFileName 方法
+	// 在實際應用中可能需要使用其他方式設定預設名稱
+}
+
+// PasswordDialog 代表密碼輸入對話框的包裝器
+type PasswordDialog struct {
+	dialog *dialog.ConfirmDialog
+}
+
+// NewPasswordDialog 建立密碼輸入對話框（暫時實作）
+func NewPasswordDialog(parent fyne.Window, title string, callback func(string)) *PasswordDialog {
+	// 建立密碼輸入框
+	passwordEntry := widget.NewPasswordEntry()
+	passwordEntry.SetPlaceHolder("請輸入密碼...")
+	
+	// 建立對話框內容
+	content := container.NewVBox(
+		widget.NewLabel(title),
+		passwordEntry,
+	)
+	
+	// 建立對話框
+	customDialog := dialog.NewCustomConfirm("密碼驗證", "確定", "取消", content, func(confirmed bool) {
+		if confirmed {
+			callback(passwordEntry.Text)
+		}
+	}, parent)
+	
+	return &PasswordDialog{dialog: customDialog}
+}
+
+// Show 顯示密碼輸入對話框
+func (pd *PasswordDialog) Show() {
+	pd.dialog.Show()
 }

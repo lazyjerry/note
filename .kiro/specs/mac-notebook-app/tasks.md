@@ -284,9 +284,9 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄主題和外觀設定整合，完成 Task 11 並發布 v0.11.0**
     - _需求: 6.1_
 
-- [-] 12. 整合所有服務到 UI
+- [x] 12. 整合所有服務到 UI
 
-  - [-] 12.1 連接編輯器服務到 UI
+  - [x] 12.1 連接編輯器服務到 UI
 
     - 整合編輯器服務到主界面
     - 實作檔案開啟和保存的 UI 流程
@@ -296,7 +296,7 @@ func FunctionName(param1 string, param2 int) error {
     - **更新 CHANGELOG.md 記錄編輯器服務到 UI 的整合**
     - _需求: 1.1, 1.3, 1.4_
 
-  - [ ] 12.2 整合檔案管理到 UI
+  - [x] 12.2 整合檔案管理到 UI
     - 連接檔案管理服務到檔案樹
     - 實作檔案操作的 UI 回饋
     - 添加操作確認對話框

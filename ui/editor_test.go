@@ -75,6 +75,16 @@ func (m *mockEditorService) PreviewMarkdown(content string) string {
 	return "<p>" + content + "</p>"
 }
 
+// DecryptWithPassword 模擬密碼解密功能
+// 參數：noteID（筆記 ID）、password（密碼）
+// 回傳：解密後的內容和可能的錯誤
+func (m *mockEditorService) DecryptWithPassword(noteID, password string) (string, error) {
+	if note, exists := m.notes[noteID]; exists {
+		return note.Content, nil
+	}
+	return "", nil
+}
+
 // TestNewMarkdownEditor 測試 Markdown 編輯器的建立和初始化
 // 驗證編輯器是否正確建立並包含所有必要的 UI 元件
 //

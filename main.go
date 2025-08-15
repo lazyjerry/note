@@ -8,7 +8,12 @@ import (
 	"fyne.io/fyne/v2/theme"    // 提供主題相關功能，用於自訂 UI 外觀樣式
 	_ "embed"                  // Go 1.16+ 嵌入式檔案支援，用於嵌入字型資源
 	"image/color"              // Go 標準庫，提供顏色定義和處理功能
+	"log"                      // Go 標準庫，用於錯誤記錄
+	"os"                       // Go 標準庫，用於作業系統介面
+	"path/filepath"            // Go 標準庫，用於檔案路徑處理
 	"mac-notebook-app/internal/models" // 本專案的資料模型套件
+	"mac-notebook-app/internal/services" // 本專案的服務層套件
+	"mac-notebook-app/internal/repositories" // 本專案的儲存庫層套件
 	"mac-notebook-app/ui"      // 本專案的 UI 套件，包含主視窗和其他 UI 元件
 )
 
@@ -19,9 +24,9 @@ import (
 // 3. 建立主視窗實例
 // 4. 顯示主視窗並啟動應用程式主迴圈
 func main() {
-	// 建立新的 Fyne 應用程式實例
+	// 建立新的 Fyne 應用程式實例，使用唯一 ID
 	// 這將初始化 GUI 框架並準備建立視窗
-	myApp := app.New()
+	myApp := app.NewWithID("com.macnotebook.app")
 	
 	// 設定應用程式的基本屬性
 	myApp.SetIcon(nil) // 暫時不設定圖示，後續會添加自訂圖示
@@ -36,9 +41,43 @@ func main() {
 		settings = models.NewDefaultSettings()
 	}
 
+	// 建立必要的服務實例
+	// 1. 建立檔案儲存庫
+	baseDir := settings.DefaultSaveLocation
+	if baseDir == "" {
+		// 如果沒有設定預設位置，使用使用者主目錄下的 Documents/NotebookApp
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Printf("無法取得使用者主目錄: %v", err)
+			baseDir = "."
+		} else {
+			baseDir = filepath.Join(homeDir, "Documents", "NotebookApp")
+		}
+		
+		// 確保目錄存在
+		if err := os.MkdirAll(baseDir, 0755); err != nil {
+			log.Printf("無法建立基礎目錄 %s: %v", baseDir, err)
+			baseDir = "."
+		}
+	}
+	
+	fileRepo, err := repositories.NewLocalFileRepository(baseDir)
+	if err != nil {
+		log.Fatalf("建立檔案儲存庫失敗: %v", err)
+	}
+
+	// 2. 建立檔案管理服務
+	fileManagerService, err := services.NewLocalFileManagerService(fileRepo, baseDir)
+	if err != nil {
+		log.Fatalf("建立檔案管理服務失敗: %v", err)
+	}
+
+	// 3. 建立編輯器服務
+	editorService := services.NewEditorService(fileRepo, nil, nil, nil)
+
 	// 建立主視窗實例
-	// 使用新的 MainWindow 結構，包含完整的 UI 佈局
-	mainWindow := ui.NewMainWindow(myApp, settings)
+	// 使用新的 MainWindow 結構，包含完整的 UI 佈局和服務整合
+	mainWindow := ui.NewMainWindow(myApp, settings, editorService, fileManagerService)
 
 	// 顯示主視窗並啟動應用程式的主事件迴圈
 	// 這個函數會阻塞直到使用者關閉應用程式

@@ -34,6 +34,11 @@ type EditorService interface {
 	// 參數：content（Markdown 內容）
 	// 回傳：HTML 字串
 	PreviewMarkdown(content string) string
+	
+	// DecryptWithPassword 使用密碼解密筆記內容
+	// 參數：noteID（筆記 ID）、password（解密密碼）
+	// 回傳：解密後的內容和可能的錯誤
+	DecryptWithPassword(noteID, password string) (string, error)
 }
 
 // FileManagerService 定義檔案系統操作的介面
@@ -63,6 +68,11 @@ type FileManagerService interface {
 	// 參數：sourcePath（來源路徑）、destPath（目標路徑）
 	// 回傳：可能的錯誤
 	MoveFile(sourcePath, destPath string) error
+	
+	// CopyFile 複製檔案或目錄
+	// 參數：sourcePath（來源路徑）、destPath（目標路徑）
+	// 回傳：可能的錯誤
+	CopyFile(sourcePath, destPath string) error
 }
 
 // EncryptionService 定義加密操作的介面
