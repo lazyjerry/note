@@ -32,7 +32,7 @@ func TestNewMainWindow(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -106,7 +106,7 @@ func TestMainWindowUIComponents(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -187,7 +187,7 @@ func TestMainWindowStatusUpdates(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -242,7 +242,7 @@ func TestMainWindowGetWindow(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -280,7 +280,7 @@ func TestMainWindowSplitRatio(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -316,7 +316,7 @@ func TestMainWindowThemeIntegration(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -370,7 +370,7 @@ func TestMainWindowOnThemeChanged(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -404,7 +404,7 @@ func TestMainWindowEditorServiceIntegration(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例
@@ -451,7 +451,7 @@ func TestMainWindowFileManagerServiceIntegration(t *testing.T) {
 	encryptionSvc := services.NewEncryptionService()
 	passwordSvc := services.NewPasswordService()
 	biometricSvc := services.NewBiometricService()
-	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc)
+	editorService := services.NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, services.NewPerformanceService(nil))
 	fileManagerService, _ := services.NewLocalFileManagerService(fileRepo, "./test_notes")
 	
 	// 建立主視窗實例

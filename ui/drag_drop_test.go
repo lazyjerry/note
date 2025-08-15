@@ -49,6 +49,11 @@ func (m *MockFileManagerService) CopyFile(sourcePath, destPath string) error {
 	return nil
 }
 
+// SearchFiles 模擬搜尋檔案
+func (m *MockFileManagerService) SearchFiles(searchPath, pattern string, includeSubdirs bool) ([]*models.FileInfo, error) {
+	return m.files, nil
+}
+
 
 
 // TestNewDragDropManager 測試拖拽管理器的建立

@@ -517,3 +517,50 @@ func (e *errorMockFileManagerService) MoveFile(sourcePath, destPath string) erro
 func (e *errorMockFileManagerService) CopyFile(sourcePath, destPath string) error {
 	return fmt.Errorf("模擬錯誤：無法複製檔案")
 }
+
+func (e *errorMockFileManagerService) SearchFiles(searchPath, pattern string, includeSubdirs bool) ([]*models.FileInfo, error) {
+	return nil, fmt.Errorf("模擬錯誤：無法搜尋檔案")
+}
+
+// mockFileManagerService 模擬正常的檔案管理服務
+type mockFileManagerService struct {
+	files []*models.FileInfo
+}
+
+// newMockFileManagerService 建立模擬檔案管理服務
+func newMockFileManagerService() *mockFileManagerService {
+	return &mockFileManagerService{
+		files: []*models.FileInfo{
+			{Name: "readme.md", Path: "/test/readme.md", IsDirectory: false},
+			{Name: "notes", Path: "/test/notes", IsDirectory: true},
+		},
+	}
+}
+
+func (m *mockFileManagerService) ListFiles(directory string) ([]*models.FileInfo, error) {
+	return m.files, nil
+}
+
+func (m *mockFileManagerService) CreateDirectory(path string) error {
+	return nil
+}
+
+func (m *mockFileManagerService) DeleteFile(path string) error {
+	return nil
+}
+
+func (m *mockFileManagerService) RenameFile(oldPath, newPath string) error {
+	return nil
+}
+
+func (m *mockFileManagerService) MoveFile(sourcePath, destPath string) error {
+	return nil
+}
+
+func (m *mockFileManagerService) CopyFile(sourcePath, destPath string) error {
+	return nil
+}
+
+func (m *mockFileManagerService) SearchFiles(searchPath, pattern string, includeSubdirs bool) ([]*models.FileInfo, error) {
+	return m.files, nil
+}

@@ -85,6 +85,26 @@ func (m *mockEditorService) DecryptWithPassword(noteID, password string) (string
 	return "", nil
 }
 
+// GetActiveNotes 模擬取得所有活躍筆記功能
+// 回傳：活躍筆記的映射表
+func (m *mockEditorService) GetActiveNotes() map[string]*models.Note {
+	return m.notes
+}
+
+// CloseNote 模擬關閉筆記功能
+// 參數：noteID（筆記 ID）
+func (m *mockEditorService) CloseNote(noteID string) {
+	delete(m.notes, noteID)
+}
+
+// GetActiveNote 模擬取得活躍筆記功能
+// 參數：noteID（筆記 ID）
+// 回傳：筆記實例和是否存在
+func (m *mockEditorService) GetActiveNote(noteID string) (*models.Note, bool) {
+	note, exists := m.notes[noteID]
+	return note, exists
+}
+
 // TestNewMarkdownEditor 測試 Markdown 編輯器的建立和初始化
 // 驗證編輯器是否正確建立並包含所有必要的 UI 元件
 //

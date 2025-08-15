@@ -72,8 +72,14 @@ func main() {
 		log.Fatalf("建立檔案管理服務失敗: %v", err)
 	}
 
-	// 3. 建立編輯器服務
-	editorService := services.NewEditorService(fileRepo, nil, nil, nil)
+	// 3. 建立各種服務
+	encryptionService := services.NewEncryptionService()
+	passwordService := services.NewPasswordService()
+	biometricService := services.NewBiometricService()
+	performanceService := services.NewPerformanceService(nil)
+	
+	// 4. 建立編輯器服務
+	editorService := services.NewEditorService(fileRepo, encryptionService, passwordService, biometricService, performanceService)
 
 	// 建立主視窗實例
 	// 使用新的 MainWindow 結構，包含完整的 UI 佈局和服務整合

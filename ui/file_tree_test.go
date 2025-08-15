@@ -12,16 +12,16 @@ import (
 	"mac-notebook-app/internal/repositories" // 本專案的儲存庫層套件
 )
 
-// mockFileManagerService 模擬檔案管理服務
+// fileTreeMockFileManagerService 模擬檔案管理服務
 // 用於測試時提供可控制的檔案系統行為
-type mockFileManagerService struct {
+type fileTreeMockFileManagerService struct {
 	files map[string][]*models.FileInfo // 模擬的檔案結構
 }
 
-// newMockFileManagerService 建立新的模擬檔案管理服務
+// newFileTreeMockFileManagerService 建立新的模擬檔案管理服務
 // 回傳：配置好測試資料的模擬服務實例
-func newMockFileManagerService() *mockFileManagerService {
-	service := &mockFileManagerService{
+func newFileTreeMockFileManagerService() *fileTreeMockFileManagerService {
+	service := &fileTreeMockFileManagerService{
 		files: make(map[string][]*models.FileInfo),
 	}
 	
@@ -33,7 +33,7 @@ func newMockFileManagerService() *mockFileManagerService {
 
 // setupTestFileStructure 設定測試用的檔案結構
 // 建立一個包含檔案和目錄的模擬檔案系統
-func (m *mockFileManagerService) setupTestFileStructure() {
+func (m *fileTreeMockFileManagerService) setupTestFileStructure() {
 	// 根目錄檔案
 	m.files["/test"] = []*models.FileInfo{
 		{Path: "/test/notes", Name: "notes", IsDirectory: true},
@@ -60,7 +60,7 @@ func (m *mockFileManagerService) setupTestFileStructure() {
 }
 
 // ListFiles 實作 FileManagerService 介面的 ListFiles 方法
-func (m *mockFileManagerService) ListFiles(directory string) ([]*models.FileInfo, error) {
+func (m *fileTreeMockFileManagerService) ListFiles(directory string) ([]*models.FileInfo, error) {
 	files, exists := m.files[directory]
 	if !exists {
 		return []*models.FileInfo{}, nil
@@ -69,17 +69,18 @@ func (m *mockFileManagerService) ListFiles(directory string) ([]*models.FileInfo
 }
 
 // 實作其他 FileManagerService 介面方法（測試中不使用）
-func (m *mockFileManagerService) CreateDirectory(path string) error { return nil }
-func (m *mockFileManagerService) DeleteFile(path string) error { return nil }
-func (m *mockFileManagerService) RenameFile(oldPath, newPath string) error { return nil }
-func (m *mockFileManagerService) MoveFile(sourcePath, destPath string) error { return nil }
-func (m *mockFileManagerService) CopyFile(sourcePath, destPath string) error { return nil }
+func (m *fileTreeMockFileManagerService) CreateDirectory(path string) error { return nil }
+func (m *fileTreeMockFileManagerService) DeleteFile(path string) error { return nil }
+func (m *fileTreeMockFileManagerService) RenameFile(oldPath, newPath string) error { return nil }
+func (m *fileTreeMockFileManagerService) MoveFile(sourcePath, destPath string) error { return nil }
+func (m *fileTreeMockFileManagerService) CopyFile(sourcePath, destPath string) error { return nil }
+func (m *fileTreeMockFileManagerService) SearchFiles(searchPath, pattern string, includeSubdirs bool) ([]*models.FileInfo, error) { return m.files[searchPath], nil }
 
 // TestNewFileTreeWidget 測試檔案樹元件的建立
 // 驗證檔案樹元件是否正確建立並包含所有必要的屬性
 func TestNewFileTreeWidget(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -115,7 +116,7 @@ func TestNewFileTreeWidget(t *testing.T) {
 // 驗證檔案樹是否正確載入檔案和目錄結構
 func TestFileTreeLoadFileStructure(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -162,7 +163,7 @@ func TestFileTreeLoadFileStructure(t *testing.T) {
 // 驗證樹狀元件能否正確取得子節點的 ID 列表
 func TestFileTreeGetChildUIDs(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -194,7 +195,7 @@ func TestFileTreeGetChildUIDs(t *testing.T) {
 // 驗證樹狀元件能否正確識別目錄和檔案
 func TestFileTreeIsBranch(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -228,7 +229,7 @@ func TestFileTreeIsBranch(t *testing.T) {
 // 驗證檔案樹的節點選擇回調是否正確工作
 func TestFileTreeNodeSelection(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -262,7 +263,7 @@ func TestFileTreeNodeSelection(t *testing.T) {
 // 驗證目錄節點的展開和收合狀態管理
 func TestFileTreeBranchOperations(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -300,7 +301,7 @@ func TestFileTreeBranchOperations(t *testing.T) {
 // 驗證檔案樹能否正確重新載入檔案結構
 func TestFileTreeRefresh(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -337,7 +338,7 @@ func TestFileTreeRefresh(t *testing.T) {
 // 驗證檔案樹能否正確回傳目前選擇的路徑
 func TestFileTreeGetSelectedPath(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
@@ -353,7 +354,7 @@ func TestFileTreeGetSelectedPath(t *testing.T) {
 // 驗證檔案樹能否正確展開指定路徑的所有父目錄
 func TestFileTreeExpandPath(t *testing.T) {
 	// 建立模擬檔案管理服務
-	mockService := newMockFileManagerService()
+	mockService := newFileTreeMockFileManagerService()
 	
 	// 建立檔案樹元件
 	fileTree := NewFileTreeWidget(mockService, "/test")
