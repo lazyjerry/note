@@ -73,6 +73,13 @@ func (m *MockEditorService) PreviewMarkdown(content string) string {
 	return "<p>" + content + "</p>"
 }
 
+// DecryptWithPassword 模擬使用密碼解密筆記內容功能
+// 參數：noteID（筆記 ID）、password（解密密碼）
+// 回傳：解密後的內容和可能的錯誤
+func (m *MockEditorService) DecryptWithPassword(noteID, password string) (string, error) {
+	return "解密後的內容", nil
+}
+
 // GetSaveCallCount 取得保存呼叫的次數
 // 回傳：保存呼叫次數
 func (m *MockEditorService) GetSaveCallCount() int {

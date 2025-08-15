@@ -136,6 +136,44 @@ type SaveStatus struct {
 	SaveCount   int       `json:"save_count"`           // 累計保存次數
 }
 
+// NotificationType 定義通知類型的列舉
+type NotificationType int
+
+const (
+	// NotificationInfo 資訊通知（藍色）
+	NotificationInfo NotificationType = iota
+	// NotificationSuccess 成功通知（綠色）
+	NotificationSuccess
+	// NotificationWarning 警告通知（橙色）
+	NotificationWarning
+	// NotificationError 錯誤通知（紅色）
+	NotificationError
+)
+
+// Notification 代表一個通知訊息
+// 包含通知的所有必要資訊和顯示屬性
+type Notification struct {
+	ID          string           `json:"id"`          // 通知的唯一識別碼
+	Type        NotificationType `json:"type"`        // 通知類型
+	Title       string           `json:"title"`       // 通知標題
+	Message     string           `json:"message"`     // 通知內容
+	Duration    time.Duration    `json:"duration"`    // 顯示持續時間
+	CreatedAt   time.Time        `json:"created_at"`  // 建立時間
+	IsRead      bool             `json:"is_read"`     // 是否已讀
+	IsPersistent bool            `json:"is_persistent"` // 是否持久顯示（不自動消失）
+}
+
+// SaveStatusInfo 代表保存操作的狀態資訊
+// 用於顯示檔案保存的即時狀態
+type SaveStatusInfo struct {
+	NoteID       string    `json:"note_id"`       // 筆記 ID
+	FileName     string    `json:"file_name"`     // 檔案名稱
+	IsSaving     bool      `json:"is_saving"`     // 是否正在保存中
+	LastSaved    time.Time `json:"last_saved"`    // 最後保存時間
+	SaveProgress float64   `json:"save_progress"` // 保存進度（0.0 - 1.0）
+	HasChanges   bool      `json:"has_changes"`   // 是否有未保存的變更
+}
+
 // SettingsService 定義設定管理的介面
 // 負責處理應用程式設定的載入、保存和預設值管理
 type SettingsService interface {
@@ -151,4 +189,100 @@ type SettingsService interface {
 	// GetDefaultSettings 取得預設的應用程式設定
 	// 回傳：預設設定實例
 	GetDefaultSettings() *models.Settings
+}
+
+// ErrorService 定義錯誤處理的介面
+// 負責統一的錯誤處理、本地化和日誌記錄功能
+type ErrorService interface {
+	// LogError 記錄錯誤到日誌檔案
+	// 參數：err（要記錄的錯誤）、context（錯誤發生的上下文資訊）
+	// 回傳：記錄過程中可能發生的錯誤
+	LogError(err error, context string) error
+	
+	// LocalizeError 將錯誤訊息本地化為繁體中文
+	// 參數：err（要本地化的錯誤）
+	// 回傳：本地化後的錯誤訊息
+	LocalizeError(err error) string
+	
+	// WrapError 包裝錯誤並添加上下文資訊
+	// 參數：err（原始錯誤）、context（上下文資訊）
+	// 回傳：包裝後的錯誤
+	WrapError(err error, context string) error
+	
+	// HandleError 統一處理錯誤（記錄日誌並本地化）
+	// 參數：err（要處理的錯誤）、context（錯誤發生的上下文）
+	// 回傳：本地化後的錯誤訊息
+	HandleError(err error, context string) string
+	
+	// CreateAppError 建立應用程式特定錯誤
+	// 參數：code（錯誤代碼）、message（錯誤訊息）、details（詳細資訊）
+	// 回傳：AppError 實例
+	CreateAppError(code, message, details string) *models.AppError
+	
+	// IsRetryableError 判斷錯誤是否可重試
+	// 參數：err（要檢查的錯誤）
+	// 回傳：是否可重試
+	IsRetryableError(err error) bool
+}
+
+// NotificationService 定義通知系統的介面
+// 負責用戶通知顯示、保存狀態指示和操作回饋功能
+type NotificationService interface {
+	// ShowNotification 顯示通知訊息
+	// 參數：notificationType（通知類型）、title（標題）、message（內容）、duration（持續時間）
+	// 回傳：通知 ID
+	ShowNotification(notificationType NotificationType, title, message string, duration time.Duration) string
+	
+	// ShowSuccess 顯示成功通知
+	// 參數：title（標題）、message（內容）
+	// 回傳：通知 ID
+	ShowSuccess(title, message string) string
+	
+	// ShowError 顯示錯誤通知
+	// 參數：title（標題）、message（內容）
+	// 回傳：通知 ID
+	ShowError(title, message string) string
+	
+	// ShowWarning 顯示警告通知
+	// 參數：title（標題）、message（內容）
+	// 回傳：通知 ID
+	ShowWarning(title, message string) string
+	
+	// ShowInfo 顯示資訊通知
+	// 參數：title（標題）、message（內容）
+	// 回傳：通知 ID
+	ShowInfo(title, message string) string
+	
+	// DismissNotification 關閉指定的通知
+	// 參數：notificationID（通知 ID）
+	// 回傳：是否成功關閉
+	DismissNotification(notificationID string) bool
+	
+	// DismissAllNotifications 關閉所有通知
+	DismissAllNotifications()
+	
+	// GetActiveNotifications 取得所有活躍的通知
+	// 回傳：活躍通知的陣列
+	GetActiveNotifications() []*Notification
+	
+	// UpdateSaveStatus 更新保存狀態指示器
+	// 參數：noteID（筆記 ID）、fileName（檔案名稱）、status（保存狀態資訊）
+	UpdateSaveStatus(noteID, fileName string, status SaveStatusInfo)
+	
+	// GetSaveStatus 取得指定筆記的保存狀態
+	// 參數：noteID（筆記 ID）
+	// 回傳：保存狀態資訊
+	GetSaveStatus(noteID string) *SaveStatusInfo
+	
+	// ClearSaveStatus 清除指定筆記的保存狀態
+	// 參數：noteID（筆記 ID）
+	ClearSaveStatus(noteID string)
+	
+	// SetNotificationCallback 設定通知回調函數（用於 UI 更新）
+	// 參數：callback（通知更新時的回調函數）
+	SetNotificationCallback(callback func(*Notification))
+	
+	// SetSaveStatusCallback 設定保存狀態回調函數（用於 UI 更新）
+	// 參數：callback（保存狀態更新時的回調函數）
+	SetSaveStatusCallback(callback func(string, *SaveStatusInfo))
 }
