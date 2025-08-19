@@ -1,0 +1,187 @@
+// Demo program to demonstrate view switching functionality
+// 演示視圖切換功能的示例程式
+package main
+
+import (
+	"fmt"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
+	"mac-notebook-app/ui"
+)
+
+func main() {
+	// 建立應用程式
+	myApp := app.NewWithID("view-switching-demo")
+	myWindow := myApp.NewWindow("視圖切換功能演示")
+	myWindow.Resize(fyne.NewSize(1200, 800))
+
+	// 建立佈局管理器
+	layoutManager := ui.NewLayoutManager()
+
+	// 建立視圖管理器
+	viewManager := ui.NewViewManager(myWindow, layoutManager)
+
+	// 建立示例內容
+	editorContent := container.NewVBox(
+		widget.NewLabel("📝 編輯器內容"),
+		widget.NewEntry(),
+		widget.NewButton("模擬編輯操作", func() {
+			fmt.Println("執行編輯操作")
+		}),
+	)
+
+	previewContent := container.NewVBox(
+		widget.NewLabel("👁️ 預覽內容"),
+		widget.NewRichTextFromMarkdown("# 示例標題\n\n這是 **Markdown** 預覽內容。\n\n- 項目 1\n- 項目 2\n- 項目 3"),
+		widget.NewButton("模擬預覽操作", func() {
+			fmt.Println("執行預覽操作")
+		}),
+	)
+
+	// 設定內容到視圖管理器
+	viewManager.SetEditorContent(editorContent)
+	viewManager.SetPreviewContent(previewContent)
+
+	// 建立控制面板
+	controlPanel := container.NewVBox(
+		widget.NewLabel("🎛️ 視圖控制面板"),
+		widget.NewSeparator(),
+		
+		// 視圖模式切換按鈕
+		widget.NewButton("📝 編輯模式 (⌘1)", func() {
+			viewManager.SetViewMode(ui.ViewModeEdit)
+			fmt.Println("切換到編輯模式")
+		}),
+		widget.NewButton("👁️ 預覽模式 (⌘2)", func() {
+			viewManager.SetViewMode(ui.ViewModePreview)
+			fmt.Println("切換到預覽模式")
+		}),
+		widget.NewButton("⚡ 分割視圖 (⌘3)", func() {
+			viewManager.SetViewMode(ui.ViewModeSplit)
+			fmt.Println("切換到分割視圖")
+		}),
+		
+		widget.NewSeparator(),
+		
+		// 其他控制功能
+		widget.NewButton("🔄 循環切換", func() {
+			viewManager.ToggleViewMode()
+			mode := viewManager.GetCurrentViewModeString()
+			fmt.Printf("循環切換到：%s\n", mode)
+		}),
+		widget.NewButton("🔙 返回上一個模式", func() {
+			viewManager.RestorePreviousMode()
+			mode := viewManager.GetCurrentViewModeString()
+			fmt.Printf("返回到：%s\n", mode)
+		}),
+		widget.NewButton("🖥️ 切換全螢幕 (⌃⌘F)", func() {
+			viewManager.ToggleFullscreen()
+			if viewManager.IsFullscreen() {
+				fmt.Println("進入全螢幕模式")
+			} else {
+				fmt.Println("退出全螢幕模式")
+			}
+		}),
+		
+		widget.NewSeparator(),
+		
+		// 分割比例控制
+		widget.NewLabel("分割比例控制："),
+		func() *widget.Slider {
+			slider := widget.NewSlider(0.1, 0.9)
+			slider.Value = 0.5
+			slider.OnChanged = func(value float64) {
+				viewManager.SetSplitRatio(value)
+				fmt.Printf("設定分割比例：%.2f\n", value)
+			}
+			return slider
+		}(),
+	)
+
+	// 設定回調函數來顯示狀態變更
+	viewManager.SetOnViewModeChanged(func(mode ui.ViewMode) {
+		modeString := viewManager.GetViewModeString(mode)
+		fmt.Printf("✅ 視圖模式已變更為：%s\n", modeString)
+	})
+
+	viewManager.SetOnFullscreenToggled(func(fullscreen bool) {
+		if fullscreen {
+			fmt.Println("✅ 已進入全螢幕模式")
+		} else {
+			fmt.Println("✅ 已退出全螢幕模式")
+		}
+	})
+
+	viewManager.SetOnSplitRatioChanged(func(ratio float64) {
+		fmt.Printf("✅ 分割比例已變更為：%.2f\n", ratio)
+	})
+
+	// 建立狀態顯示
+	statusLabel := widget.NewLabel("當前狀態：分割視圖")
+	
+	// 更新狀態顯示的函數
+	updateStatus := func() {
+		mode := viewManager.GetCurrentViewModeString()
+		ratio := viewManager.GetSplitRatio()
+		fullscreen := ""
+		if viewManager.IsFullscreen() {
+			fullscreen = " (全螢幕)"
+		}
+		statusLabel.SetText(fmt.Sprintf("當前狀態：%s%s | 分割比例：%.2f", mode, fullscreen, ratio))
+	}
+
+	// 設定定時更新狀態
+	viewManager.SetOnViewModeChanged(func(mode ui.ViewMode) {
+		modeString := viewManager.GetViewModeString(mode)
+		fmt.Printf("✅ 視圖模式已變更為：%s\n", modeString)
+		updateStatus()
+	})
+
+	viewManager.SetOnFullscreenToggled(func(fullscreen bool) {
+		if fullscreen {
+			fmt.Println("✅ 已進入全螢幕模式")
+		} else {
+			fmt.Println("✅ 已退出全螢幕模式")
+		}
+		updateStatus()
+	})
+
+	viewManager.SetOnSplitRatioChanged(func(ratio float64) {
+		fmt.Printf("✅ 分割比例已變更為：%.2f\n", ratio)
+		updateStatus()
+	})
+
+	// 組合主要佈局
+	mainContent := container.NewHSplit(
+		controlPanel,
+		viewManager.GetContainer(),
+	)
+	mainContent.Offset = 0.25 // 控制面板佔 25%
+
+	// 建立完整佈局
+	fullLayout := container.NewVBox(
+		statusLabel,
+		widget.NewSeparator(),
+		mainContent,
+	)
+
+	// 設定視窗內容
+	myWindow.SetContent(fullLayout)
+
+	// 初始化狀態顯示
+	updateStatus()
+
+	// 顯示說明
+	fmt.Println("🎉 視圖切換功能演示程式已啟動！")
+	fmt.Println("📋 功能說明：")
+	fmt.Println("   - 使用左側控制面板的按鈕來切換視圖模式")
+	fmt.Println("   - 支援鍵盤快捷鍵：⌘1 (編輯)、⌘2 (預覽)、⌘3 (分割)、⌃⌘F (全螢幕)")
+	fmt.Println("   - 可以調整分割比例滑桿來改變編輯器和預覽的比例")
+	fmt.Println("   - 所有操作都會在終端顯示狀態訊息")
+	fmt.Println("")
+
+	// 顯示視窗並運行
+	myWindow.ShowAndRun()
+}

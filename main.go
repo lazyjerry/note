@@ -77,9 +77,10 @@ func main() {
 	passwordService := services.NewPasswordService()
 	biometricService := services.NewBiometricService()
 	performanceService := services.NewPerformanceService(nil)
+	smartEditingService := services.NewSmartEditingService()
 	
 	// 4. 建立編輯器服務
-	editorService := services.NewEditorService(fileRepo, encryptionService, passwordService, biometricService, performanceService)
+	editorService := services.NewEditorService(fileRepo, encryptionService, passwordService, biometricService, performanceService, smartEditingService)
 
 	// 建立主視窗實例
 	// 使用新的 MainWindow 結構，包含完整的 UI 佈局和服務整合

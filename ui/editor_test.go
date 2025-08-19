@@ -105,6 +105,93 @@ func (m *mockEditorService) GetActiveNote(noteID string) (*models.Note, bool) {
 	return note, exists
 }
 
+// GetAutoCompleteSuggestions 模擬自動完成建議功能
+// 參數：content（當前內容）、cursorPosition（游標位置）
+// 回傳：自動完成建議陣列
+func (m *mockEditorService) GetAutoCompleteSuggestions(content string, cursorPosition int) []services.AutoCompleteSuggestion {
+	return []services.AutoCompleteSuggestion{
+		{Text: "# ", Description: "標題", Type: "header", InsertText: "# "},
+		{Text: "- ", Description: "項目符號", Type: "list", InsertText: "- "},
+	}
+}
+
+// FormatTableContent 模擬表格格式化功能
+// 參數：tableContent（表格內容）
+// 回傳：格式化後的表格字串和可能的錯誤
+func (m *mockEditorService) FormatTableContent(tableContent string) (string, error) {
+	return tableContent, nil
+}
+
+// InsertLinkMarkdown 模擬插入 Markdown 連結功能
+// 參數：text（連結文字）、url（連結網址）
+// 回傳：格式化的 Markdown 連結字串
+func (m *mockEditorService) InsertLinkMarkdown(text, url string) string {
+	return "[" + text + "](" + url + ")"
+}
+
+// InsertImageMarkdown 模擬插入 Markdown 圖片功能
+// 參數：altText（替代文字）、imagePath（圖片路徑）
+// 回傳：格式化的 Markdown 圖片字串
+func (m *mockEditorService) InsertImageMarkdown(altText, imagePath string) string {
+	return "![" + altText + "](" + imagePath + ")"
+}
+
+// GetSupportedCodeLanguages 模擬取得支援程式語言功能
+// 回傳：支援的程式語言陣列
+func (m *mockEditorService) GetSupportedCodeLanguages() []string {
+	return []string{"go", "javascript", "python", "java", "c++"}
+}
+
+// FormatCodeBlockMarkdown 模擬格式化程式碼區塊功能
+// 參數：code（程式碼內容）、language（程式語言）
+// 回傳：格式化的 Markdown 程式碼區塊
+func (m *mockEditorService) FormatCodeBlockMarkdown(code, language string) string {
+	return "```" + language + "\n" + code + "\n```"
+}
+
+// FormatMathExpressionMarkdown 模擬格式化數學公式功能
+// 參數：expression（數學表達式）、isInline（是否為行內公式）
+// 回傳：格式化的 LaTeX 數學公式字串
+func (m *mockEditorService) FormatMathExpressionMarkdown(expression string, isInline bool) string {
+	if isInline {
+		return "$" + expression + "$"
+	}
+	return "$$" + expression + "$$"
+}
+
+// ValidateMarkdownContent 模擬驗證 Markdown 內容功能
+// 參數：content（要驗證的 Markdown 內容）
+// 回傳：驗證結果和可能的錯誤列表
+func (m *mockEditorService) ValidateMarkdownContent(content string) (bool, []string) {
+	return true, []string{}
+}
+
+// GenerateTableTemplateMarkdown 模擬生成表格模板功能
+// 參數：rows（行數）、cols（列數）
+// 回傳：表格模板字串
+func (m *mockEditorService) GenerateTableTemplateMarkdown(rows, cols int) string {
+	return "| Header | Header |\n|--------|--------|\n| Cell   | Cell   |"
+}
+
+// PreviewMarkdownWithHighlight 模擬預覽 Markdown 內容並包含程式碼高亮功能
+// 參數：content（Markdown 格式的內容）
+// 回傳：轉換後的 HTML 字串（包含語法高亮）
+func (m *mockEditorService) PreviewMarkdownWithHighlight(content string) string {
+	return "<div class=\"highlight\"><p>" + content + "</p></div>"
+}
+
+// GetSmartEditingService 模擬取得智慧編輯服務功能
+// 回傳：SmartEditingService 介面實例
+func (m *mockEditorService) GetSmartEditingService() services.SmartEditingService {
+	return nil
+}
+
+// SetSmartEditingService 模擬設定智慧編輯服務功能
+// 參數：smartEditSvc（智慧編輯服務實例）
+func (m *mockEditorService) SetSmartEditingService(smartEditSvc services.SmartEditingService) {
+	// 模擬實作，不執行任何操作
+}
+
 // TestNewMarkdownEditor 測試 Markdown 編輯器的建立和初始化
 // 驗證編輯器是否正確建立並包含所有必要的 UI 元件
 //
@@ -113,6 +200,7 @@ func (m *mockEditorService) GetActiveNote(noteID string) (*models.Note, bool) {
 // 2. 所有 UI 元件是否正確初始化
 // 3. 服務依賴是否正確設定
 // 4. 初始狀態是否正確
+// 5. 兩行工具欄佈局是否正確
 func TestNewMarkdownEditor(t *testing.T) {
 	// 建立模擬編輯器服務
 	mockService := newMockEditorService()
@@ -130,9 +218,15 @@ func TestNewMarkdownEditor(t *testing.T) {
 		t.Error("編輯器的主要容器不應該為 nil")
 	}
 	
-	// 驗證工具欄
+	// 驗證工具欄容器
 	if editor.toolbar == nil {
-		t.Error("編輯器的工具欄不應該為 nil")
+		t.Error("編輯器的工具欄容器不應該為 nil")
+	}
+	
+	// 驗證工具欄是兩行佈局（包含工具欄和標籤）
+	toolbarContainer := editor.toolbar
+	if len(toolbarContainer.Objects) < 5 {
+		t.Error("工具欄容器應包含至少5個元件（兩行工具欄、兩行標籤、一個分隔線）")
 	}
 	
 	// 驗證文字編輯器

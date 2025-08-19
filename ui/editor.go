@@ -17,14 +17,20 @@ import (
 // MarkdownEditor 代表 Markdown 編輯器 UI 元件
 // 包含文字編輯器、工具欄、語法高亮和即時預覽功能
 // 整合編輯器服務以提供完整的筆記編輯體驗
+// 支援繁體中文輸入法優化和中文字符處理
 type MarkdownEditor struct {
 	container     *fyne.Container      // 主要容器
-	toolbar       *widget.Toolbar      // 編輯器工具欄
+	toolbar       *fyne.Container      // 編輯器工具欄容器（包含兩行工具欄和標籤）
 	editor        *widget.Entry        // 文字編輯器元件
 	statusLabel   *widget.Label        // 狀態標籤
 	
+	// 中文輸入增強
+	chineseInputEnhancer *ChineseInputEnhancer // 中文輸入增強器
+	enableChineseInput   bool                  // 是否啟用中文輸入增強
+	
 	// 服務依賴
-	editorService services.EditorService // 編輯器服務
+	editorService        services.EditorService        // 編輯器服務
+	chineseInputService  services.ChineseInputService  // 中文輸入服務
 	
 	// 當前狀態
 	currentNote   *models.Note         // 當前編輯的筆記
@@ -43,15 +49,24 @@ type MarkdownEditor struct {
 // 執行流程：
 // 1. 建立 MarkdownEditor 結構體實例
 // 2. 初始化編輯器服務依賴
-// 3. 建立並配置所有 UI 元件
-// 4. 設定事件處理和回調函數
-// 5. 組合完整的編輯器佈局
-// 6. 回傳配置完成的編輯器實例
+// 3. 建立中文輸入增強器和服務
+// 4. 建立並配置所有 UI 元件
+// 5. 設定事件處理和回調函數
+// 6. 組合完整的編輯器佈局
+// 7. 回傳配置完成的編輯器實例
 func NewMarkdownEditor(editorService services.EditorService) *MarkdownEditor {
 	// 建立 MarkdownEditor 實例
 	editor := &MarkdownEditor{
-		editorService: editorService,
-		isModified:    false,
+		editorService:       editorService,
+		chineseInputService: services.NewChineseInputService(),
+		enableChineseInput:  true, // 預設啟用中文輸入增強
+		isModified:          false,
+	}
+	
+	// 建立中文輸入增強器
+	if editor.enableChineseInput {
+		editor.chineseInputEnhancer = NewChineseInputEnhancer()
+		editor.setupChineseInputIntegration()
 	}
 	
 	// 初始化 UI 元件
@@ -84,16 +99,16 @@ func (me *MarkdownEditor) setupUI() {
 }
 
 // createToolbar 建立編輯器工具欄
-// 包含常用的 Markdown 格式化按鈕和編輯功能
+// 包含常用的 Markdown 格式化按鈕和編輯功能，採用兩行佈局並加上文字說明
 //
 // 執行流程：
-// 1. 建立標題格式化按鈕（H1-H3）
-// 2. 建立文字格式化按鈕（粗體、斜體、刪除線）
-// 3. 建立列表和連結按鈕
-// 4. 建立保存和預覽按鈕
-// 5. 組合所有按鈕到工具欄
+// 1. 建立第一行工具欄：標題格式化和文字格式化按鈕
+// 2. 建立第二行工具欄：列表、連結、程式碼和操作按鈕
+// 3. 為每個按鈕添加文字說明，避免圖示混淆
+// 4. 組合兩行工具欄到垂直容器中
 func (me *MarkdownEditor) createToolbar() {
-	me.toolbar = widget.NewToolbar(
+	// 第一行工具欄：標題和文字格式化
+	firstRow := widget.NewToolbar(
 		// 標題格式化按鈕
 		widget.NewToolbarAction(theme.DocumentIcon(), func() {
 			me.insertMarkdown("# ", "", "標題 1")
@@ -122,10 +137,10 @@ func (me *MarkdownEditor) createToolbar() {
 		widget.NewToolbarAction(theme.ContentCopyIcon(), func() {
 			me.wrapSelection("~~", "~~", "刪除線文字")
 		}),
-		
-		// 分隔線
-		widget.NewToolbarSeparator(),
-		
+	)
+	
+	// 第二行工具欄：列表、連結、程式碼和操作
+	secondRow := widget.NewToolbar(
 		// 列表按鈕
 		widget.NewToolbarAction(theme.ListIcon(), func() {
 			me.insertMarkdown("- ", "", "列表項目")
@@ -172,6 +187,67 @@ func (me *MarkdownEditor) createToolbar() {
 			me.togglePreview()
 		}),
 	)
+	
+	// 建立文字說明標籤
+	firstRowLabels := container.NewHBox(
+		widget.NewLabel("H1"),
+		widget.NewLabel("H2"), 
+		widget.NewLabel("H3"),
+		widget.NewLabel(""),  // 分隔線對應的空白
+		widget.NewLabel("粗體"),
+		widget.NewLabel("斜體"),
+		widget.NewLabel("刪除線"),
+	)
+	
+	secondRowLabels := container.NewHBox(
+		widget.NewLabel("無序列表"),
+		widget.NewLabel("有序列表"),
+		widget.NewLabel(""),  // 分隔線對應的空白
+		widget.NewLabel("連結"),
+		widget.NewLabel("圖片"),
+		widget.NewLabel(""),  // 分隔線對應的空白
+		widget.NewLabel("行內程式碼"),
+		widget.NewLabel("程式碼區塊"),
+		widget.NewLabel(""),  // 分隔線對應的空白
+		widget.NewLabel("保存"),
+		widget.NewLabel("預覽"),
+	)
+	
+	// 設定標籤樣式
+	for _, label := range []*widget.Label{
+		firstRowLabels.Objects[0].(*widget.Label),
+		firstRowLabels.Objects[1].(*widget.Label),
+		firstRowLabels.Objects[2].(*widget.Label),
+		firstRowLabels.Objects[4].(*widget.Label),
+		firstRowLabels.Objects[5].(*widget.Label),
+		firstRowLabels.Objects[6].(*widget.Label),
+	} {
+		label.TextStyle = fyne.TextStyle{Italic: true}
+		label.Alignment = fyne.TextAlignCenter
+	}
+	
+	for _, label := range []*widget.Label{
+		secondRowLabels.Objects[0].(*widget.Label),
+		secondRowLabels.Objects[1].(*widget.Label),
+		secondRowLabels.Objects[3].(*widget.Label),
+		secondRowLabels.Objects[4].(*widget.Label),
+		secondRowLabels.Objects[6].(*widget.Label),
+		secondRowLabels.Objects[7].(*widget.Label),
+		secondRowLabels.Objects[9].(*widget.Label),
+		secondRowLabels.Objects[10].(*widget.Label),
+	} {
+		label.TextStyle = fyne.TextStyle{Italic: true}
+		label.Alignment = fyne.TextAlignCenter
+	}
+	
+	// 組合工具欄和標籤
+	me.toolbar = container.NewVBox(
+		firstRow,
+		firstRowLabels,
+		widget.NewSeparator(),
+		secondRow,
+		secondRowLabels,
+	)
 }
 
 // createTextEditor 建立文字編輯器元件
@@ -202,6 +278,149 @@ func (me *MarkdownEditor) createTextEditor() {
 		// Enter 鍵處理（如果需要特殊行為）
 		me.handleEnterKey()
 	}
+	
+	// 如果啟用中文輸入增強，使用增強器的文字輸入元件
+	if me.enableChineseInput && me.chineseInputEnhancer != nil {
+		// 將標準編輯器替換為中文增強編輯器
+		me.replaceWithChineseEnhancedEditor()
+	}
+}
+
+// setupChineseInputIntegration 設定中文輸入整合
+// 配置中文輸入增強器與編輯器的整合
+//
+// 執行流程：
+// 1. 設定中文輸入增強器的回調函數
+// 2. 配置中文輸入相關的設定
+// 3. 整合中文輸入服務
+func (me *MarkdownEditor) setupChineseInputIntegration() {
+	if me.chineseInputEnhancer == nil {
+		return
+	}
+	
+	// 設定文字變更回調
+	me.chineseInputEnhancer.SetOnTextChanged(func(text string) {
+		me.handleChineseTextChanged(text)
+	})
+	
+	// 設定組合文字變更回調
+	me.chineseInputEnhancer.SetOnCompositionChanged(func(text string) {
+		me.handleCompositionChanged(text)
+	})
+	
+	// 設定候選字選擇回調
+	me.chineseInputEnhancer.SetOnCandidateSelected(func(word string) {
+		me.handleCandidateSelected(word)
+	})
+	
+	// 配置中文輸入設定
+	me.chineseInputEnhancer.SetShowCandidates(true)
+	me.chineseInputEnhancer.SetAutoComplete(true)
+	me.chineseInputEnhancer.SetFontName("PingFang TC")
+	me.chineseInputEnhancer.SetFontSize(14.0)
+}
+
+// replaceWithChineseEnhancedEditor 將標準編輯器替換為中文增強編輯器
+// 使用中文輸入增強器的文字輸入元件替換標準編輯器
+//
+// 執行流程：
+// 1. 保存標準編輯器的設定
+// 2. 將設定應用到中文增強編輯器
+// 3. 替換編輯器元件
+func (me *MarkdownEditor) replaceWithChineseEnhancedEditor() {
+	if me.chineseInputEnhancer == nil {
+		return
+	}
+	
+	// 保存標準編輯器的設定
+	placeholder := me.editor.PlaceHolder
+	wrapping := me.editor.Wrapping
+	
+	// 取得中文增強編輯器的文字輸入元件
+	enhancedEditor := me.chineseInputEnhancer.GetTextEntry()
+	
+	// 應用設定到增強編輯器
+	enhancedEditor.SetPlaceHolder(placeholder)
+	enhancedEditor.Wrapping = wrapping
+	enhancedEditor.Scroll = container.ScrollBoth
+	
+	// 設定事件處理
+	enhancedEditor.OnChanged = func(content string) {
+		me.onTextChanged(content)
+	}
+	
+	enhancedEditor.OnSubmitted = func(content string) {
+		me.handleEnterKey()
+	}
+	
+	// 替換編輯器元件
+	me.editor = enhancedEditor
+}
+
+// handleChineseTextChanged 處理中文文字變更事件
+// 參數：text（變更後的文字內容）
+//
+// 執行流程：
+// 1. 分析文字的中文內容
+// 2. 更新中文輸入狀態
+// 3. 觸發標準的文字變更處理
+func (me *MarkdownEditor) handleChineseTextChanged(text string) {
+	// 分析文字組成
+	if me.chineseInputService != nil {
+		composition := me.chineseInputService.AnalyzeTextComposition(text)
+		
+		// 更新狀態顯示，包含中文字符統計
+		me.updateChineseInputStatus(composition)
+	}
+	
+	// 觸發標準的文字變更處理
+	me.onTextChanged(text)
+}
+
+// handleCompositionChanged 處理組合文字變更事件
+// 參數：text（組合文字內容）
+//
+// 執行流程：
+// 1. 更新組合文字顯示
+// 2. 提供候選字建議（如果適用）
+func (me *MarkdownEditor) handleCompositionChanged(text string) {
+	// 更新狀態顯示
+	me.updateStatus(fmt.Sprintf("組合輸入: %s", text))
+}
+
+// handleCandidateSelected 處理候選字選擇事件
+// 參數：word（選擇的候選字詞）
+//
+// 執行流程：
+// 1. 記錄候選字選擇
+// 2. 更新詞彙頻率（如果適用）
+// 3. 觸發文字變更處理
+func (me *MarkdownEditor) handleCandidateSelected(word string) {
+	// 更新狀態顯示
+	me.updateStatus(fmt.Sprintf("已選擇: %s", word))
+	
+	// 如果有中文輸入服務，可以記錄詞彙使用
+	if me.chineseInputService != nil {
+		// 這裡可以實作詞彙使用統計
+		me.chineseInputService.AddCustomWord(word)
+	}
+}
+
+// updateChineseInputStatus 更新中文輸入狀態顯示
+// 參數：composition（文字組成分析結果）
+//
+// 執行流程：
+// 1. 格式化中文輸入狀態資訊
+// 2. 更新狀態標籤顯示
+func (me *MarkdownEditor) updateChineseInputStatus(composition services.TextComposition) {
+	statusText := fmt.Sprintf("字符: %d | 中文: %d (%.1f%%) | 英文: %d | 數字: %d",
+		composition.TotalCharacters,
+		composition.ChineseCharacters,
+		composition.ChineseRatio*100,
+		composition.EnglishCharacters,
+		composition.NumberCharacters)
+	
+	me.updateStatus(statusText)
 }
 
 // createStatusLabel 建立狀態標籤
@@ -226,7 +445,7 @@ func (me *MarkdownEditor) createStatusLabel() {
 func (me *MarkdownEditor) assembleLayout() {
 	// 建立主要容器，使用垂直佈局
 	me.container = container.NewVBox(
-		me.toolbar,                    // 工具欄在頂部
+		me.toolbar,                    // 工具欄容器在頂部（包含兩行工具欄和標籤）
 		widget.NewSeparator(),         // 分隔線
 		me.editor,                     // 編輯器在中間（主要區域）
 		widget.NewSeparator(),         // 分隔線
@@ -547,7 +766,9 @@ func (me *MarkdownEditor) handleEnterKey() {
 // Focus 設定編輯器焦點
 // 讓編輯器獲得輸入焦點
 func (me *MarkdownEditor) Focus() {
-	if me.editor != nil {
+	if me.enableChineseInput && me.chineseInputEnhancer != nil {
+		me.chineseInputEnhancer.Focus()
+	} else if me.editor != nil {
 		me.editor.FocusGained()
 	}
 }
@@ -601,4 +822,139 @@ func (me *MarkdownEditor) SetTitle(title string) {
 		me.isModified = true
 		me.updateStatus(fmt.Sprintf("標題已更新: %s", title))
 	}
+}
+
+// ApplyFormat 應用格式化到編輯器內容
+// 參數：prefix（前綴標記）、suffix（後綴標記）、placeholder（佔位文字）
+//
+// 執行流程：
+// 1. 檢查是否有選取的文字
+// 2. 如果有選取，包圍選取的文字
+// 3. 如果沒有選取，插入佔位文字
+// 4. 觸發內容變更事件
+func (me *MarkdownEditor) ApplyFormat(prefix, suffix, placeholder string) {
+	if suffix != "" {
+		// 使用包圍格式（如粗體、斜體）
+		me.wrapSelection(prefix, suffix, placeholder)
+	} else {
+		// 使用插入格式（如標題）
+		me.insertMarkdown(prefix, "", placeholder)
+	}
+}
+
+// InsertText 在編輯器中插入文字
+// 參數：text（要插入的文字）
+//
+// 執行流程：
+// 1. 取得當前游標位置
+// 2. 在游標位置插入文字
+// 3. 更新編輯器內容
+// 4. 觸發內容變更事件
+func (me *MarkdownEditor) InsertText(text string) {
+	// 取得當前內容
+	content := me.editor.Text
+	
+	// 簡化實作：在內容末尾添加文字
+	// 實際實作中可以取得游標位置並在該位置插入
+	newContent := content + "\n" + text
+	
+	// 更新編輯器內容
+	me.editor.SetText(newContent)
+	
+	// 觸發內容變更事件
+	me.onTextChanged(newContent)
+}
+
+// SetEnableChineseInput 設定是否啟用中文輸入增強
+// 參數：enable（是否啟用中文輸入增強）
+//
+// 執行流程：
+// 1. 更新中文輸入啟用狀態
+// 2. 如果啟用且尚未建立增強器，則建立
+// 3. 重新配置編輯器
+func (me *MarkdownEditor) SetEnableChineseInput(enable bool) {
+	me.enableChineseInput = enable
+	
+	if enable && me.chineseInputEnhancer == nil {
+		me.chineseInputEnhancer = NewChineseInputEnhancer()
+		me.setupChineseInputIntegration()
+		me.replaceWithChineseEnhancedEditor()
+	}
+}
+
+// IsChineseInputEnabled 檢查是否啟用中文輸入增強
+// 回傳：是否啟用中文輸入增強的布林值
+func (me *MarkdownEditor) IsChineseInputEnabled() bool {
+	return me.enableChineseInput
+}
+
+// GetChineseInputEnhancer 取得中文輸入增強器
+// 回傳：中文輸入增強器實例，如果未啟用則回傳 nil
+func (me *MarkdownEditor) GetChineseInputEnhancer() *ChineseInputEnhancer {
+	return me.chineseInputEnhancer
+}
+
+// GetChineseInputService 取得中文輸入服務
+// 回傳：中文輸入服務實例
+func (me *MarkdownEditor) GetChineseInputService() services.ChineseInputService {
+	return me.chineseInputService
+}
+
+// AnalyzeCurrentText 分析當前文字的中文內容
+// 回傳：文字組成分析結果
+//
+// 執行流程：
+// 1. 取得當前文字內容
+// 2. 使用中文輸入服務分析文字組成
+// 3. 回傳分析結果
+func (me *MarkdownEditor) AnalyzeCurrentText() services.TextComposition {
+	if me.chineseInputService == nil {
+		return services.TextComposition{}
+	}
+	
+	currentText := me.GetContent()
+	return me.chineseInputService.AnalyzeTextComposition(currentText)
+}
+
+// GetChineseCharacterCount 取得當前文字的中文字符數量
+// 回傳：中文字符數量
+func (me *MarkdownEditor) GetChineseCharacterCount() int {
+	if me.chineseInputService == nil {
+		return 0
+	}
+	
+	currentText := me.GetContent()
+	return me.chineseInputService.CountChineseCharacters(currentText)
+}
+
+// OptimizeChineseInput 優化當前的中文輸入
+// 回傳：輸入法優化建議
+//
+// 執行流程：
+// 1. 取得當前文字內容
+// 2. 使用中文輸入服務分析和優化
+// 3. 回傳優化建議
+func (me *MarkdownEditor) OptimizeChineseInput() services.InputOptimization {
+	if me.chineseInputService == nil {
+		return services.InputOptimization{}
+	}
+	
+	currentText := me.GetContent()
+	return me.chineseInputService.OptimizeInputMethod(currentText)
+}
+
+// ValidateChineseInput 驗證當前的中文輸入
+// 回傳：輸入驗證結果
+//
+// 執行流程：
+// 1. 取得當前文字內容
+// 2. 使用中文輸入服務驗證輸入
+// 3. 回傳驗證結果
+func (me *MarkdownEditor) ValidateChineseInput() services.ValidationResult {
+	if me.chineseInputService == nil {
+		return services.ValidationResult{IsValid: true}
+	}
+	
+	currentText := me.GetContent()
+	return me.chineseInputService.ValidateChineseInput(currentText)
 }

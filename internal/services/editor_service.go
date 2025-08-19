@@ -22,11 +22,13 @@ import (
 // 負責處理筆記的核心編輯功能，包含建立、開啟、保存、更新和 Markdown 預覽
 // 整合加密功能，支援加密檔案的開啟、保存和管理
 // 新增效能優化功能，支援大檔案處理和記憶體管理
+// 整合智慧編輯功能，提供進階的編輯輔助工具
 type editorService struct {
 	fileRepo      repositories.FileRepository // 檔案存取介面
 	encryptionSvc EncryptionService           // 加密服務介面
 	passwordSvc   PasswordService             // 密碼服務介面
 	biometricSvc  BiometricService            // 生物識別服務介面
+	smartEditSvc  SmartEditingService         // 智慧編輯服務介面
 	markdown      goldmark.Markdown           // Markdown 解析器實例
 	activeNotes   map[string]*models.Note     // 當前開啟的筆記快取
 	perfService   PerformanceService          // 效能服務介面
@@ -44,15 +46,17 @@ type editorService struct {
 //   - passwordSvc: 密碼服務介面
 //   - biometricSvc: 生物識別服務介面
 //   - perfService: 效能服務介面（可選，用於效能監控和優化）
+//   - smartEditSvc: 智慧編輯服務介面（可選，用於進階編輯功能）
 // 回傳：EditorService 介面實例
 //
 // 執行流程：
 // 1. 初始化 goldmark Markdown 解析器，啟用常用擴展功能
 // 2. 建立筆記快取映射表
 // 3. 整合加密相關服務
-// 4. 設定效能優化參數
-// 5. 回傳配置完成的編輯器服務實例
-func NewEditorService(fileRepo repositories.FileRepository, encryptionSvc EncryptionService, passwordSvc PasswordService, biometricSvc BiometricService, perfService PerformanceService) EditorService {
+// 4. 整合智慧編輯服務
+// 5. 設定效能優化參數
+// 6. 回傳配置完成的編輯器服務實例
+func NewEditorService(fileRepo repositories.FileRepository, encryptionSvc EncryptionService, passwordSvc PasswordService, biometricSvc BiometricService, perfService PerformanceService, smartEditSvc SmartEditingService) EditorService {
 	// 配置 Markdown 解析器，啟用表格、刪除線、任務列表等擴展功能
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -70,11 +74,17 @@ func NewEditorService(fileRepo repositories.FileRepository, encryptionSvc Encryp
 		),
 	)
 
+	// 如果沒有提供智慧編輯服務，建立預設實例
+	if smartEditSvc == nil {
+		smartEditSvc = NewSmartEditingService()
+	}
+
 	return &editorService{
 		fileRepo:           fileRepo,
 		encryptionSvc:      encryptionSvc,
 		passwordSvc:        passwordSvc,
 		biometricSvc:       biometricSvc,
+		smartEditSvc:       smartEditSvc,
 		markdown:           md,
 		activeNotes:        make(map[string]*models.Note),
 		perfService:        perfService,
@@ -860,4 +870,196 @@ func (e *editorService) MonitorMemoryUsage() (int64, string, error) {
 	}
 	
 	return memUsage, suggestion, nil
+}
+
+// ========== 智慧編輯功能實作 ==========
+
+// GetAutoCompleteSuggestions 取得自動完成建議
+// 參數：content（當前內容）、cursorPosition（游標位置）
+// 回傳：自動完成建議陣列
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務處理
+// 2. 回傳自動完成建議列表
+func (e *editorService) GetAutoCompleteSuggestions(content string, cursorPosition int) []AutoCompleteSuggestion {
+	if e.smartEditSvc == nil {
+		return []AutoCompleteSuggestion{}
+	}
+	return e.smartEditSvc.AutoCompleteMarkdown(content, cursorPosition)
+}
+
+// FormatTableContent 格式化表格內容
+// 參數：tableContent（表格內容）
+// 回傳：格式化後的表格字串和可能的錯誤
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務處理表格格式化
+// 2. 回傳格式化結果
+func (e *editorService) FormatTableContent(tableContent string) (string, error) {
+	if e.smartEditSvc == nil {
+		return tableContent, fmt.Errorf("智慧編輯服務未啟用")
+	}
+	return e.smartEditSvc.FormatTable(tableContent)
+}
+
+// InsertLinkMarkdown 插入 Markdown 連結
+// 參數：text（連結文字）、url（連結網址）
+// 回傳：格式化的 Markdown 連結字串
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務處理連結插入
+// 2. 回傳格式化的連結字串
+func (e *editorService) InsertLinkMarkdown(text, url string) string {
+	if e.smartEditSvc == nil {
+		return fmt.Sprintf("[%s](%s)", text, url)
+	}
+	return e.smartEditSvc.InsertLink(text, url)
+}
+
+// InsertImageMarkdown 插入 Markdown 圖片
+// 參數：altText（替代文字）、imagePath（圖片路徑）
+// 回傳：格式化的 Markdown 圖片字串
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務處理圖片插入
+// 2. 回傳格式化的圖片字串
+func (e *editorService) InsertImageMarkdown(altText, imagePath string) string {
+	if e.smartEditSvc == nil {
+		return fmt.Sprintf("![%s](%s)", altText, imagePath)
+	}
+	return e.smartEditSvc.InsertImage(altText, imagePath)
+}
+
+// GetSupportedCodeLanguages 取得支援的程式語言列表
+// 回傳：支援的程式語言陣列
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務取得支援的語言列表
+// 2. 回傳語言陣列
+func (e *editorService) GetSupportedCodeLanguages() []string {
+	if e.smartEditSvc == nil {
+		return []string{"text", "go", "javascript", "python", "html", "css"}
+	}
+	return e.smartEditSvc.GetSupportedLanguages()
+}
+
+// FormatCodeBlockMarkdown 格式化程式碼區塊
+// 參數：code（程式碼內容）、language（程式語言）
+// 回傳：格式化的 Markdown 程式碼區塊
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務處理程式碼區塊格式化
+// 2. 回傳格式化的程式碼區塊
+func (e *editorService) FormatCodeBlockMarkdown(code, language string) string {
+	if e.smartEditSvc == nil {
+		return fmt.Sprintf("```%s\n%s\n```", language, code)
+	}
+	return e.smartEditSvc.FormatCodeBlock(code, language)
+}
+
+// FormatMathExpressionMarkdown 格式化數學公式
+// 參數：expression（數學表達式）、isInline（是否為行內公式）
+// 回傳：格式化的 LaTeX 數學公式字串
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務處理數學公式格式化
+// 2. 回傳格式化的數學公式
+func (e *editorService) FormatMathExpressionMarkdown(expression string, isInline bool) string {
+	if e.smartEditSvc == nil {
+		if isInline {
+			return fmt.Sprintf("$%s$", expression)
+		}
+		return fmt.Sprintf("$$\n%s\n$$", expression)
+	}
+	return e.smartEditSvc.FormatMathExpression(expression, isInline)
+}
+
+// ValidateMarkdownContent 驗證 Markdown 內容的語法正確性
+// 參數：content（要驗證的 Markdown 內容）
+// 回傳：驗證結果和可能的錯誤列表
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務進行語法驗證
+// 2. 回傳驗證結果和錯誤列表
+func (e *editorService) ValidateMarkdownContent(content string) (bool, []string) {
+	if e.smartEditSvc == nil {
+		return true, []string{} // 如果沒有智慧編輯服務，預設為有效
+	}
+	return e.smartEditSvc.ValidateMarkdownSyntax(content)
+}
+
+// GenerateTableTemplateMarkdown 生成表格模板
+// 參數：rows（行數）、cols（列數）
+// 回傳：表格模板字串
+//
+// 執行流程：
+// 1. 委託給智慧編輯服務生成表格模板
+// 2. 回傳表格模板字串
+func (e *editorService) GenerateTableTemplateMarkdown(rows, cols int) string {
+	if e.smartEditSvc == nil {
+		// 簡單的預設表格模板
+		return "| 欄位1 | 欄位2 | 欄位3 |\n|-------|-------|-------|\n| 內容1 | 內容2 | 內容3 |"
+	}
+	return e.smartEditSvc.GenerateTableTemplate(rows, cols)
+}
+
+// PreviewMarkdownWithHighlight 預覽 Markdown 內容並包含程式碼高亮
+// 參數：content（Markdown 格式的內容）
+// 回傳：轉換後的 HTML 字串（包含語法高亮）
+//
+// 執行流程：
+// 1. 使用 goldmark 進行基本的 Markdown 轉換
+// 2. 如果有智慧編輯服務，對程式碼區塊進行語法高亮處理
+// 3. 回傳增強的 HTML 內容
+func (e *editorService) PreviewMarkdownWithHighlight(content string) string {
+	// 先進行基本的 Markdown 轉換
+	var buf bytes.Buffer
+	err := e.markdown.Convert([]byte(content), &buf)
+	if err != nil {
+		return fmt.Sprintf("<p>Markdown 轉換錯誤: %s</p>", err.Error())
+	}
+	
+	htmlContent := buf.String()
+	
+	// 如果有智慧編輯服務，進行程式碼高亮處理
+	if e.smartEditSvc != nil {
+		htmlContent = e.enhanceCodeBlocks(htmlContent)
+	}
+	
+	return htmlContent
+}
+
+// enhanceCodeBlocks 增強程式碼區塊的語法高亮
+// 參數：htmlContent（HTML 內容）
+// 回傳：增強後的 HTML 內容
+//
+// 執行流程：
+// 1. 尋找 HTML 中的程式碼區塊
+// 2. 提取程式碼內容和語言資訊
+// 3. 使用智慧編輯服務進行語法高亮
+// 4. 替換原始的程式碼區塊
+func (e *editorService) enhanceCodeBlocks(htmlContent string) string {
+	// 這是一個簡化的實作，實際應用中可能需要更複雜的 HTML 解析
+	// 目前直接回傳原始內容，未來可以擴展
+	return htmlContent
+}
+
+// GetSmartEditingService 取得智慧編輯服務實例
+// 回傳：SmartEditingService 介面實例
+//
+// 執行流程：
+// 1. 回傳內部的智慧編輯服務實例
+// 2. 供外部直接存取智慧編輯功能
+func (e *editorService) GetSmartEditingService() SmartEditingService {
+	return e.smartEditSvc
+}
+
+// SetSmartEditingService 設定智慧編輯服務實例
+// 參數：smartEditSvc（智慧編輯服務實例）
+//
+// 執行流程：
+// 1. 更新內部的智慧編輯服務實例
+// 2. 允許動態替換智慧編輯服務
+func (e *editorService) SetSmartEditingService(smartEditSvc SmartEditingService) {
+	e.smartEditSvc = smartEditSvc
 }

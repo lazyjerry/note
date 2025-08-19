@@ -104,6 +104,71 @@ func (m *MockEditorService) GetActiveNote(noteID string) (*models.Note, bool) {
 	return note, exists
 }
 
+// ========== 智慧編輯功能模擬實作 ==========
+
+// GetAutoCompleteSuggestions 模擬自動完成建議功能
+func (m *MockEditorService) GetAutoCompleteSuggestions(content string, cursorPosition int) []AutoCompleteSuggestion {
+	return []AutoCompleteSuggestion{}
+}
+
+// FormatTableContent 模擬表格格式化功能
+func (m *MockEditorService) FormatTableContent(tableContent string) (string, error) {
+	return tableContent, nil
+}
+
+// InsertLinkMarkdown 模擬連結插入功能
+func (m *MockEditorService) InsertLinkMarkdown(text, url string) string {
+	return "[" + text + "](" + url + ")"
+}
+
+// InsertImageMarkdown 模擬圖片插入功能
+func (m *MockEditorService) InsertImageMarkdown(altText, imagePath string) string {
+	return "![" + altText + "](" + imagePath + ")"
+}
+
+// GetSupportedCodeLanguages 模擬取得支援語言列表功能
+func (m *MockEditorService) GetSupportedCodeLanguages() []string {
+	return []string{"go", "javascript", "python"}
+}
+
+// FormatCodeBlockMarkdown 模擬程式碼區塊格式化功能
+func (m *MockEditorService) FormatCodeBlockMarkdown(code, language string) string {
+	return "```" + language + "\n" + code + "\n```"
+}
+
+// FormatMathExpressionMarkdown 模擬數學公式格式化功能
+func (m *MockEditorService) FormatMathExpressionMarkdown(expression string, isInline bool) string {
+	if isInline {
+		return "$" + expression + "$"
+	}
+	return "$$\n" + expression + "\n$$"
+}
+
+// ValidateMarkdownContent 模擬 Markdown 內容驗證功能
+func (m *MockEditorService) ValidateMarkdownContent(content string) (bool, []string) {
+	return true, []string{}
+}
+
+// GenerateTableTemplateMarkdown 模擬表格模板生成功能
+func (m *MockEditorService) GenerateTableTemplateMarkdown(rows, cols int) string {
+	return "| 欄位1 | 欄位2 |\n|-------|-------|\n| 內容1 | 內容2 |"
+}
+
+// PreviewMarkdownWithHighlight 模擬帶語法高亮的預覽功能
+func (m *MockEditorService) PreviewMarkdownWithHighlight(content string) string {
+	return "<p>" + content + "</p>"
+}
+
+// GetSmartEditingService 模擬取得智慧編輯服務功能
+func (m *MockEditorService) GetSmartEditingService() SmartEditingService {
+	return NewSmartEditingService()
+}
+
+// SetSmartEditingService 模擬設定智慧編輯服務功能
+func (m *MockEditorService) SetSmartEditingService(smartEditSvc SmartEditingService) {
+	// 模擬設定操作
+}
+
 // NewMockEditorService 建立新的模擬編輯器服務
 func NewMockEditorService() *MockEditorService {
 	return &MockEditorService{

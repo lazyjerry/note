@@ -117,9 +117,9 @@ func TestMainWindowUIComponents(t *testing.T) {
 		t.Error("主視窗的選單欄不應該為 nil")
 	}
 	
-	// 驗證工具欄已建立
-	if mainWindow.toolBar == nil {
-		t.Error("主視窗的工具欄不應該為 nil")
+	// 驗證增強版工具欄已建立
+	if mainWindow.enhancedToolbar == nil {
+		t.Error("主視窗的增強版工具欄不應該為 nil")
 	}
 	
 	// 驗證狀態欄已建立
@@ -145,16 +145,9 @@ func TestMainWindowUIComponents(t *testing.T) {
 		t.Error("主要內容容器不應該為 nil")
 	}
 	
-	if mainWindow.leftPanel == nil {
-		t.Error("左側面板不應該為 nil")
-	}
-	
-	if mainWindow.rightPanel == nil {
-		t.Error("右側面板不應該為 nil")
-	}
-	
-	if mainWindow.mainSplit == nil {
-		t.Error("主要分割容器不應該為 nil")
+	// 驗證佈局管理器已建立
+	if mainWindow.layoutManager == nil {
+		t.Error("佈局管理器不應該為 nil")
 	}
 	
 	// 驗證編輯器和檔案樹元件已建立
@@ -286,12 +279,12 @@ func TestMainWindowSplitRatio(t *testing.T) {
 	// 建立主視窗實例
 	mainWindow := NewMainWindow(testApp, testSettings, editorService, fileManagerService)
 	
-	// 驗證分割容器的偏移量
-	expectedOffset := 0.3
-	actualOffset := mainWindow.mainSplit.Offset
+	// 驗證佈局管理器的預設設定
+	expectedSidebarWidth := 0.2
+	actualSidebarWidth := mainWindow.layoutManager.GetSidebarWidth()
 	
-	if actualOffset != expectedOffset {
-		t.Errorf("分割容器偏移量應該是 %f，但得到 %f", expectedOffset, actualOffset)
+	if actualSidebarWidth != expectedSidebarWidth {
+		t.Errorf("側邊欄寬度應該為 %f，實際為 %f", expectedSidebarWidth, actualSidebarWidth)
 	}
 }
 
@@ -420,9 +413,9 @@ func TestMainWindowEditorServiceIntegration(t *testing.T) {
 		t.Fatal("編輯器元件不應該為 nil")
 	}
 	
-	// 驗證編輯器容器已正確嵌入到右側面板
-	if mainWindow.rightPanel == nil {
-		t.Error("右側面板不應該為 nil")
+	// 驗證編輯器已正確整合到佈局管理器
+	if mainWindow.editorWithPreview == nil {
+		t.Error("整合編輯器不應該為 nil")
 	}
 	
 	editorContainer := mainWindow.editor.GetContainer()
@@ -467,9 +460,9 @@ func TestMainWindowFileManagerServiceIntegration(t *testing.T) {
 		t.Fatal("檔案樹元件不應該為 nil")
 	}
 	
-	// 驗證檔案樹容器已正確嵌入到左側面板
-	if mainWindow.leftPanel == nil {
-		t.Error("左側面板不應該為 nil")
+	// 驗證檔案樹已正確整合到佈局管理器
+	if mainWindow.fileTreeWidget == nil {
+		t.Error("檔案樹元件不應該為 nil")
 	}
 	
 	fileTreeContainer := mainWindow.fileTree.GetContainer()

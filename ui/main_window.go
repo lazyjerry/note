@@ -9,7 +9,6 @@ import (
 	"fyne.io/fyne/v2"          // Fyne GUI 框架核心套件
 	"fyne.io/fyne/v2/container" // Fyne 容器佈局套件
 	"fyne.io/fyne/v2/widget"   // Fyne UI 元件套件
-	"fyne.io/fyne/v2/theme"    // Fyne 主題套件
 	"fyne.io/fyne/v2/dialog"   // Fyne 對話框套件
 
 	"mac-notebook-app/internal/models"
@@ -34,29 +33,30 @@ func (ft *FileTree) Refresh() error {
 }
 
 // MainWindow 代表應用程式的主視窗
-// 包含所有主要的 UI 元件，如選單欄、工具欄、內容區域和狀態欄
-// 採用標準的桌面應用程式佈局結構
+// 包含所有主要的 UI 元件，採用新的三欄式響應式佈局結構
+// 支援可調整面板大小、工具欄重新設計和增強的使用者體驗
 type MainWindow struct {
 	window       fyne.Window      // 主視窗實例
 	content      *fyne.Container  // 主要內容容器
 	menuBar      *fyne.MainMenu   // 選單欄
-	toolBar      *widget.Toolbar  // 工具欄
-	statusBar    *fyne.Container  // 狀態欄容器
+	
+	// 新的佈局系統
+	layoutManager    *LayoutManager     // 佈局管理器
+	enhancedToolbar  *EnhancedToolbar   // 增強版工具欄
+	viewManager      *ViewManager       // 視圖管理器
 	
 	// 狀態欄元件
+	statusBar    *fyne.Container  // 狀態欄容器
 	saveStatus   *widget.Label    // 保存狀態指示器
 	encStatus    *widget.Label    // 加密狀態指示器
 	wordCount    *widget.Label    // 字數統計顯示
-	
-	// 主要內容區域
-	leftPanel    *fyne.Container  // 左側面板（檔案樹和筆記列表）
-	rightPanel   *fyne.Container  // 右側面板（編輯器和預覽）
-	mainSplit    *container.Split // 主要分割容器
+	viewModeLabel *widget.Label   // 視圖模式指示器
 	
 	// UI 元件
 	fileTree       *FileTree        // 檔案樹元件（舊版，保留相容性）
 	fileTreeWidget *FileTreeWidget  // 新的檔案樹元件
 	editor         *MarkdownEditor  // Markdown 編輯器元件
+	editorWithPreview *EditorWithPreview // 整合編輯器和預覽
 
 	// 服務和設定
 	app              fyne.App                         // Fyne 應用程式實例
@@ -105,6 +105,11 @@ func NewMainWindow(app fyne.App, settings *models.Settings, editorService servic
 	// 初始化主題服務
 	mw.themeService = services.NewThemeService(app, settings)
 	
+	// 初始化新的佈局系統
+	mw.layoutManager = NewLayoutManager()
+	mw.enhancedToolbar = NewEnhancedToolbar()
+	mw.viewManager = NewViewManager(window, mw.layoutManager)
+	
 	// 初始化使用者介面元件
 	mw.setupUI()
 	
@@ -118,33 +123,41 @@ func NewMainWindow(app fyne.App, settings *models.Settings, editorService servic
 }
 
 // setupUI 初始化使用者介面元件
-// 這個方法負責建立和配置主視窗的所有 UI 元件
+// 使用新的佈局管理器和增強版工具欄系統
 //
 // 執行流程：
 // 1. 建立選單欄和所有選單項目
-// 2. 建立工具欄和常用功能按鈕
+// 2. 設定增強版工具欄和回調函數
 // 3. 建立狀態欄和狀態指示器
-// 4. 建立主要內容區域的佈局結構
-// 5. 組合所有元件到主視窗中
-// 6. 設定主題監聽器
+// 4. 建立主要內容區域和 UI 元件
+// 5. 配置佈局管理器和面板內容
+// 6. 組合所有元件到主視窗中
+// 7. 設定主題監聽器和響應式佈局
 func (mw *MainWindow) setupUI() {
 	// 建立選單欄
 	mw.createMenuBar()
 	
-	// 建立工具欄
-	mw.createToolBar()
+	// 設定增強版工具欄
+	mw.setupEnhancedToolbar()
 	
 	// 建立狀態欄
 	mw.createStatusBar()
 	
-	// 建立主要內容區域
-	mw.createContentArea()
+	// 建立主要內容區域和 UI 元件
+	mw.createContentComponents()
+	
+	// 配置佈局管理器
+	mw.setupLayoutManager()
 	
 	// 組合所有元件到主視窗
-	mw.assembleMainLayout()
+	mw.assembleNewLayout()
 
-	// 設定主題監聽器
+	// 設定視圖管理器
+	mw.setupViewManager()
+	
+	// 設定主題監聽器和響應式佈局
 	mw.SetupThemeListener()
+	mw.setupResponsiveLayout()
 }
 
 // Show 顯示主視窗
@@ -250,65 +263,35 @@ func (mw *MainWindow) createMenuBar() {
 	mw.window.SetMainMenu(mw.menuBar)
 }
 
-// createToolBar 建立應用程式的工具欄
-// 包含常用功能的快速存取按鈕
+// setupEnhancedToolbar 設定增強版工具欄系統
+// 配置工具欄的動作回調和響應式行為
 //
 // 執行流程：
-// 1. 建立新增筆記按鈕
-// 2. 建立儲存按鈕
-// 3. 建立加密切換按鈕
-// 4. 建立預覽切換按鈕
-// 5. 組合所有按鈕到工具欄
-func (mw *MainWindow) createToolBar() {
-	mw.toolBar = widget.NewToolbar(
-		// 新增筆記按鈕
-		widget.NewToolbarAction(theme.DocumentCreateIcon(), func() {
-			mw.createNewNote()
-		}),
-		
-		// 開啟檔案按鈕
-		widget.NewToolbarAction(theme.FolderOpenIcon(), func() {
-			mw.openFile()
-		}),
-		
-		// 儲存按鈕
-		widget.NewToolbarAction(theme.DocumentSaveIcon(), func() {
-			mw.saveCurrentNote()
-		}),
-		
-		// 分隔線
-		widget.NewToolbarSeparator(),
-		
-		// 加密切換按鈕
-		widget.NewToolbarAction(theme.VisibilityOffIcon(), func() {
-			// TODO: 實作加密切換功能
-			fmt.Println("加密切換功能將在後續任務中實作")
-		}),
-		
-		// 預覽切換按鈕
-		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-			// TODO: 實作預覽切換功能
-			fmt.Println("預覽切換功能將在後續任務中實作")
-		}),
-		
-		// 分隔線
-		widget.NewToolbarSeparator(),
-		
-		// 設定按鈕
-		widget.NewToolbarAction(theme.SettingsIcon(), func() {
-			mw.showSettingsDialog()
-		}),
-	)
+// 1. 設定工具欄動作觸發回調函數
+// 2. 根據視窗大小設定工具欄模式
+// 3. 配置工具欄區段的可見性
+func (mw *MainWindow) setupEnhancedToolbar() {
+	// 設定動作觸發回調函數
+	mw.enhancedToolbar.SetOnActionTriggered(func(action string, params map[string]interface{}) {
+		mw.handleToolbarAction(action, params)
+	})
+	
+	// 根據視窗大小設定緊湊模式
+	windowSize := mw.window.Canvas().Size()
+	if windowSize.Width < 1000 {
+		mw.enhancedToolbar.SetCompactMode(true)
+	}
 }
 
 // createStatusBar 建立應用程式的狀態欄
-// 顯示保存狀態、加密狀態和字數統計等資訊
+// 顯示保存狀態、加密狀態、字數統計和視圖模式等資訊
 //
 // 執行流程：
 // 1. 建立保存狀態指示器
 // 2. 建立加密狀態指示器
 // 3. 建立字數統計顯示
-// 4. 使用水平佈局組合狀態欄元件
+// 4. 建立視圖模式指示器
+// 5. 使用水平佈局組合狀態欄元件
 func (mw *MainWindow) createStatusBar() {
 	// 建立保存狀態指示器
 	mw.saveStatus = widget.NewLabel("已儲存")
@@ -322,115 +305,49 @@ func (mw *MainWindow) createStatusBar() {
 	mw.wordCount = widget.NewLabel("字數: 0")
 	mw.wordCount.TextStyle = fyne.TextStyle{Italic: true}
 	
+	// 建立視圖模式指示器
+	mw.viewModeLabel = widget.NewLabel("分割視圖")
+	mw.viewModeLabel.TextStyle = fyne.TextStyle{Italic: true}
+	
 	// 建立分隔線
 	separator1 := widget.NewSeparator()
 	separator2 := widget.NewSeparator()
+	separator3 := widget.NewSeparator()
 	
 	// 使用水平佈局組合狀態欄
-	// 左側顯示保存和加密狀態，右側顯示字數統計
+	// 左側顯示保存和加密狀態，中間顯示視圖模式，右側顯示字數統計
 	mw.statusBar = container.NewHBox(
 		mw.saveStatus,
 		separator1,
 		mw.encStatus,
-		widget.NewLabel(""), // 彈性空間
 		separator2,
+		mw.viewModeLabel,
+		widget.NewLabel(""), // 彈性空間
+		separator3,
 		mw.wordCount,
 	)
 }
 
-// createContentArea 建立主要內容區域
-// 包含左側面板（檔案樹和筆記列表）和右側面板（編輯器和預覽）
+// createContentComponents 建立主要內容區域的 UI 元件
+// 建立檔案樹、筆記列表和編輯器元件
 //
 // 執行流程：
-// 1. 建立左側面板包含檔案樹
-// 2. 建立右側面板包含 Markdown 編輯器
-// 3. 整合編輯器服務到 UI 元件
-// 4. 使用水平分割容器組合左右面板
-func (mw *MainWindow) createContentArea() {
-	// 建立左側面板包含檔案樹
-	mw.createLeftPanel()
+// 1. 建立檔案樹元件
+// 2. 建立筆記列表元件（暫時使用佔位符）
+// 3. 建立整合編輯器和預覽元件
+// 4. 設定元件間的事件連接
+func (mw *MainWindow) createContentComponents() {
+	// 建立檔案樹元件
+	mw.createFileTreeComponent()
 	
-	// 建立右側面板包含 Markdown 編輯器
-	mw.createRightPanel()
+	// 建立整合編輯器和預覽元件
+	mw.createEditorComponent()
 	
-	// 使用水平分割容器組合左右面板
-	// 左側面板佔 30%，右側面板佔 70%
-	mw.mainSplit = container.NewHSplit(mw.leftPanel, mw.rightPanel)
-	mw.mainSplit.Offset = 0.3 // 設定分割比例
+	// 設定元件間的事件連接
+	mw.setupComponentConnections()
 }
 
-// createLeftPanel 建立左側面板
-// 包含檔案樹和相關控制元件，整合檔案管理服務
-//
-// 執行流程：
-// 1. 建立檔案樹元件並整合檔案管理服務
-// 2. 設定檔案樹的回調函數和事件處理
-// 3. 建立面板標題和控制按鈕
-// 4. 組合所有元件到左側面板
-func (mw *MainWindow) createLeftPanel() {
-	// 建立面板標題
-	titleLabel := widget.NewLabel("檔案瀏覽器")
-	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
-	
-	// 建立檔案樹元件並整合檔案管理服務
-	// 使用設定中的預設保存位置或當前目錄
-	rootPath := mw.settings.DefaultSaveLocation
-	if rootPath == "" {
-		rootPath = "."
-	}
-	
-	// 建立真正的檔案樹元件並整合檔案管理服務
-	mw.fileTreeWidget = NewFileTreeWidget(mw.fileManagerService, rootPath)
-	
-	// 設定檔案樹的回調函數
-	mw.setupFileTreeCallbacks()
-	
-	// 建立控制按鈕
-	refreshButton := widget.NewButton("重新整理", func() {
-		mw.refreshFileTree()
-	})
-	
-	newFolderButton := widget.NewButton("新增資料夾", func() {
-		mw.createNewFolder()
-	})
-	
-	newFileButton := widget.NewButton("新增檔案", func() {
-		mw.createNewFileInCurrentDir()
-	})
-	
-	// 建立按鈕容器
-	buttonContainer := container.NewHBox(refreshButton, newFolderButton, newFileButton)
-	
-	// 組合左側面板
-	mw.leftPanel = container.NewVBox(
-		titleLabel,
-		widget.NewSeparator(),
-		mw.fileTreeWidget,
-		widget.NewSeparator(),
-		buttonContainer,
-	)
-}
 
-// createRightPanel 建立右側面板
-// 包含 Markdown 編輯器和預覽面板，整合編輯器服務
-//
-// 執行流程：
-// 1. 建立 Markdown 編輯器元件並整合編輯器服務
-// 2. 設定編輯器的回調函數和事件處理
-// 3. 建立預覽面板（如果需要）
-// 4. 組合編輯器和預覽面板到右側面板
-func (mw *MainWindow) createRightPanel() {
-	// 建立 Markdown 編輯器元件並整合編輯器服務
-	mw.editor = NewMarkdownEditor(mw.editorService)
-	
-	// 設定編輯器的回調函數
-	mw.setupEditorCallbacks()
-	
-	// 建立右側面板容器
-	mw.rightPanel = container.NewVBox(
-		mw.editor.GetContainer(),
-	)
-}
 
 // setupEditorCallbacks 設定編輯器的回調函數
 // 整合編輯器事件到主視窗的狀態管理
@@ -506,21 +423,95 @@ func (mw *MainWindow) setupFileTreeCallbacks() {
 	})
 }
 
-// assembleMainLayout 組合主視窗的完整佈局
-// 將工具欄、內容區域和狀態欄組合成完整的視窗佈局
+// setupLayoutManager 配置佈局管理器
+// 設定佈局管理器的內容和回調函數
 //
 // 執行流程：
-// 1. 建立垂直容器作為主要佈局
-// 2. 依序添加工具欄、內容區域和狀態欄
-// 3. 將完整佈局設定到主視窗
-func (mw *MainWindow) assembleMainLayout() {
-	// 建立主要內容容器，使用垂直佈局
-	mw.content = container.NewVBox(
-		mw.toolBar,                    // 工具欄在頂部
-		mw.mainSplit,                  // 主要內容區域在中間
-		widget.NewSeparator(),         // 分隔線
-		mw.statusBar,                  // 狀態欄在底部
+// 1. 設定佈局管理器的各面板內容
+// 2. 設定佈局變更和面板大小變更回調
+// 3. 載入使用者的佈局偏好設定
+func (mw *MainWindow) setupLayoutManager() {
+	// 設定側邊欄內容（檔案樹）
+	if mw.fileTreeWidget != nil {
+		mw.layoutManager.SetSidebarContent(mw.fileTreeWidget.GetContainer())
+	}
+	
+	// 設定筆記列表內容（暫時使用佔位符）
+	noteListPlaceholder := container.NewVBox(
+		widget.NewLabel("筆記列表"),
+		widget.NewLabel("（將在後續任務中實作）"),
 	)
+	mw.layoutManager.SetNoteListContent(noteListPlaceholder)
+	
+	// 設定編輯器內容 - 使用視圖管理器
+	if mw.viewManager != nil {
+		mw.layoutManager.SetEditorContent(mw.viewManager.GetContainer())
+	}
+	
+	// 設定狀態欄內容
+	mw.layoutManager.SetStatusBarContent(mw.statusBar)
+	
+	// 設定佈局變更回調
+	mw.layoutManager.SetOnLayoutChanged(func(layout string) {
+		mw.handleLayoutChanged(layout)
+	})
+	
+	// 設定面板大小變更回調
+	mw.layoutManager.SetOnPanelResized(func(panel string, size float64) {
+		mw.handlePanelResized(panel, size)
+	})
+}
+
+// setupViewManager 配置視圖管理器
+// 設定視圖管理器的內容和回調函數
+//
+// 執行流程：
+// 1. 設定編輯器和預覽內容到視圖管理器
+// 2. 設定視圖變更回調函數
+// 3. 設定全螢幕切換回調函數
+// 4. 設定分割比例變更回調函數
+func (mw *MainWindow) setupViewManager() {
+	if mw.viewManager == nil {
+		return
+	}
+	
+	// 設定編輯器和預覽內容
+	if mw.editorWithPreview != nil {
+		// 將編輯器和預覽內容設定到視圖管理器
+		mw.viewManager.SetEditorContent(mw.editorWithPreview.GetEditor().GetContainer())
+		mw.viewManager.SetPreviewContent(mw.editorWithPreview.GetPreview().GetContainer())
+	}
+	
+	// 設定視圖模式變更回調
+	mw.viewManager.SetOnViewModeChanged(func(mode ViewMode) {
+		mw.handleViewModeChanged(mode)
+	})
+	
+	// 設定全螢幕切換回調
+	mw.viewManager.SetOnFullscreenToggled(func(fullscreen bool) {
+		mw.handleFullscreenToggled(fullscreen)
+	})
+	
+	// 設定分割比例變更回調
+	mw.viewManager.SetOnSplitRatioChanged(func(ratio float64) {
+		mw.handleSplitRatioChanged(ratio)
+	})
+}
+
+// assembleNewLayout 組合新的主視窗佈局
+// 使用佈局管理器和增強版工具欄組合完整佈局
+//
+// 執行流程：
+// 1. 取得佈局管理器的主要容器
+// 2. 將增強版工具欄添加到佈局管理器
+// 3. 將完整佈局設定到主視窗
+func (mw *MainWindow) assembleNewLayout() {
+	// 將增強版工具欄設定到佈局管理器的頂部
+	topBarContent := container.NewVBox(mw.enhancedToolbar.GetContainer())
+	mw.layoutManager.topBar.Objects = []fyne.CanvasObject{topBarContent}
+	
+	// 取得完整的佈局容器
+	mw.content = mw.layoutManager.GetContainer()
 	
 	// 將完整佈局設定到主視窗
 	mw.window.SetContent(mw.content)
@@ -1633,4 +1624,657 @@ func NewPasswordDialog(parent fyne.Window, title string, callback func(string)) 
 // Show 顯示密碼輸入對話框
 func (pd *PasswordDialog) Show() {
 	pd.dialog.Show()
+}
+
+// createFileTreeComponent 建立檔案樹元件
+// 建立並配置檔案樹元件，整合檔案管理服務
+//
+// 執行流程：
+// 1. 建立檔案樹元件並整合檔案管理服務
+// 2. 設定檔案樹的根目錄路徑
+// 3. 設定檔案樹的回調函數
+func (mw *MainWindow) createFileTreeComponent() {
+	// 使用設定中的預設保存位置或當前目錄
+	rootPath := mw.settings.DefaultSaveLocation
+	if rootPath == "" {
+		rootPath = "."
+	}
+	
+	// 建立檔案樹元件並整合檔案管理服務
+	mw.fileTreeWidget = NewFileTreeWidget(mw.fileManagerService, rootPath)
+	
+	// 設定檔案樹的回調函數
+	mw.setupFileTreeCallbacks()
+}
+
+// createEditorComponent 建立編輯器元件
+// 建立整合編輯器和預覽的複合元件
+//
+// 執行流程：
+// 1. 建立整合編輯器和預覽元件
+// 2. 設定編輯器的回調函數
+// 3. 配置預覽功能
+func (mw *MainWindow) createEditorComponent() {
+	// 建立整合編輯器和預覽元件
+	mw.editorWithPreview = NewEditorWithPreview(mw.editorService)
+	
+	// 保留舊的編輯器引用以維持相容性
+	mw.editor = mw.editorWithPreview.GetEditor()
+	
+	// 設定編輯器的回調函數
+	mw.setupEditorCallbacks()
+}
+
+// setupComponentConnections 設定元件間的事件連接
+// 建立各 UI 元件之間的事件通信
+//
+// 執行流程：
+// 1. 連接檔案樹和編輯器的事件
+// 2. 連接編輯器和狀態欄的事件
+// 3. 設定元件間的資料同步
+func (mw *MainWindow) setupComponentConnections() {
+	// 檔案樹和編輯器的連接已在 setupFileTreeCallbacks 中處理
+	// 編輯器和狀態欄的連接已在 setupEditorCallbacks 中處理
+	
+	// 這裡可以添加其他元件間的連接邏輯
+}
+
+// handleToolbarAction 處理工具欄動作
+// 參數：action（動作名稱）、params（動作參數）
+//
+// 執行流程：
+// 1. 根據動作名稱執行相應的操作
+// 2. 更新 UI 狀態
+// 3. 觸發相關的服務調用
+func (mw *MainWindow) handleToolbarAction(action string, params map[string]interface{}) {
+	switch action {
+	// 檔案操作
+	case "new_note":
+		mw.createNewNote()
+	case "new_folder":
+		mw.createNewFolder()
+	case "open_file":
+		mw.openFile()
+	case "save_file":
+		mw.saveCurrentNote()
+	case "save_as":
+		mw.saveAsNewFile()
+	case "import_file":
+		mw.importFile()
+	case "export_file":
+		mw.exportFile()
+	
+	// 編輯操作
+	case "undo":
+		mw.handleEditAction("undo")
+	case "redo":
+		mw.handleEditAction("redo")
+	case "cut":
+		mw.handleEditAction("cut")
+	case "copy":
+		mw.handleEditAction("copy")
+	case "paste":
+		mw.handleEditAction("paste")
+	case "find":
+		mw.handleEditAction("find")
+	case "replace":
+		mw.handleEditAction("replace")
+	
+	// 格式化操作
+	case "format_bold":
+		mw.handleFormatAction("bold")
+	case "format_italic":
+		mw.handleFormatAction("italic")
+	case "format_underline":
+		mw.handleFormatAction("underline")
+	case "format_strikethrough":
+		mw.handleFormatAction("strikethrough")
+	case "heading_1":
+		mw.handleFormatAction("heading_1")
+	case "heading_2":
+		mw.handleFormatAction("heading_2")
+	case "heading_3":
+		mw.handleFormatAction("heading_3")
+	
+	// 插入操作
+	case "insert_link":
+		mw.handleInsertAction("link")
+	case "insert_image":
+		mw.handleInsertAction("image")
+	case "insert_table":
+		mw.handleInsertAction("table")
+	case "insert_code":
+		mw.handleInsertAction("code")
+	case "list_bullet":
+		mw.handleInsertAction("bullet_list")
+	case "list_numbered":
+		mw.handleInsertAction("numbered_list")
+	case "list_todo":
+		mw.handleInsertAction("todo_list")
+	
+	// 視圖操作
+	case "toggle_preview":
+		mw.handleViewAction("toggle_preview")
+	case "edit_mode":
+		mw.handleViewAction("edit_mode")
+	case "preview_mode":
+		mw.handleViewAction("preview_mode")
+	case "split_view":
+		mw.handleViewAction("split_view")
+	case "fullscreen":
+		mw.handleViewAction("fullscreen")
+	case "zoom_in":
+		mw.handleViewAction("zoom_in")
+	case "zoom_out":
+		mw.handleViewAction("zoom_out")
+	case "toggle_theme":
+		mw.handleViewAction("toggle_theme")
+	
+	// 工具操作
+	case "toggle_encryption":
+		mw.handleToolAction("toggle_encryption")
+	case "toggle_favorite":
+		mw.handleToolAction("toggle_favorite")
+	case "manage_tags":
+		mw.handleToolAction("manage_tags")
+	case "show_stats":
+		mw.handleToolAction("show_stats")
+	case "open_settings":
+		mw.showSettingsDialog()
+	case "show_help":
+		mw.handleToolAction("show_help")
+	
+	// 佈局操作
+	case "open_search":
+		mw.handleLayoutAction("open_search")
+	
+	default:
+		fmt.Printf("未知的工具欄動作: %s\n", action)
+	}
+}
+
+// handleLayoutChanged 處理佈局變更事件
+// 參數：layout（佈局變更類型）
+//
+// 執行流程：
+// 1. 根據佈局變更類型更新 UI
+// 2. 保存佈局狀態到設定
+// 3. 觸發相關的回調函數
+func (mw *MainWindow) handleLayoutChanged(layout string) {
+	switch layout {
+	case "sidebar_shown":
+		fmt.Println("側邊欄已顯示")
+	case "sidebar_hidden":
+		fmt.Println("側邊欄已隱藏")
+	case "notelist_shown":
+		fmt.Println("筆記列表已顯示")
+	case "notelist_hidden":
+		fmt.Println("筆記列表已隱藏")
+	default:
+		if strings.HasPrefix(layout, "action:") {
+			action := strings.TrimPrefix(layout, "action:")
+			mw.handleToolbarAction(action, nil)
+		}
+	}
+	
+	// 保存佈局狀態（將在後續任務中實作完整的設定保存）
+	mw.saveLayoutPreferences()
+}
+
+// handlePanelResized 處理面板大小變更事件
+// 參數：panel（面板名稱）、size（新的大小比例）
+//
+// 執行流程：
+// 1. 更新面板大小設定
+// 2. 保存大小偏好到設定
+// 3. 觸發 UI 重新佈局
+func (mw *MainWindow) handlePanelResized(panel string, size float64) {
+	fmt.Printf("面板 %s 大小已變更為 %.2f\n", panel, size)
+	
+	// 保存面板大小偏好（將在後續任務中實作完整的設定保存）
+	mw.saveLayoutPreferences()
+}
+
+// setupResponsiveLayout 設定響應式佈局
+// 監聽視窗大小變更並調整佈局
+//
+// 執行流程：
+// 1. 設定視窗大小變更監聽器
+// 2. 根據視窗大小調整工具欄模式
+// 3. 調整面板大小和可見性
+func (mw *MainWindow) setupResponsiveLayout() {
+	// 監聽視窗大小變更
+	mw.window.SetOnClosed(func() {
+		// 保存佈局狀態
+		mw.saveLayoutPreferences()
+	})
+	
+	// 設定初始響應式狀態
+	mw.updateResponsiveLayout()
+}
+
+// updateResponsiveLayout 更新響應式佈局
+// 根據當前視窗大小調整佈局
+//
+// 執行流程：
+// 1. 取得當前視窗大小
+// 2. 根據大小調整工具欄模式
+// 3. 調整佈局管理器的設定
+func (mw *MainWindow) updateResponsiveLayout() {
+	windowSize := mw.window.Canvas().Size()
+	
+	// 根據視窗大小調整工具欄模式
+	if windowSize.Width < 1000 {
+		mw.enhancedToolbar.SetCompactMode(true)
+		mw.layoutManager.SetCompactMode(true)
+	} else {
+		mw.enhancedToolbar.SetCompactMode(false)
+		mw.layoutManager.SetCompactMode(false)
+	}
+	
+	// 調整佈局管理器以適應視窗大小
+	mw.layoutManager.ResizeToWindow(windowSize)
+}
+
+// saveLayoutPreferences 保存佈局偏好設定
+// 將當前的佈局狀態保存到使用者設定中
+//
+// 執行流程：
+// 1. 取得佈局管理器的狀態
+// 2. 更新設定物件
+// 3. 保存設定到檔案（將在後續任務中實作）
+func (mw *MainWindow) saveLayoutPreferences() {
+	// 取得佈局狀態
+	layoutState := mw.layoutManager.SaveLayoutState()
+	
+	// 這裡可以將佈局狀態保存到設定中
+	// 實際的設定保存將在後續任務中實作
+	fmt.Printf("保存佈局偏好: %+v\n", layoutState)
+}
+
+// loadLayoutPreferences 載入佈局偏好設定
+// 從使用者設定中載入佈局狀態
+//
+// 執行流程：
+// 1. 從設定檔案讀取佈局狀態
+// 2. 應用狀態到佈局管理器
+// 3. 更新 UI 以反映載入的狀態
+func (mw *MainWindow) loadLayoutPreferences() {
+	// 這裡可以從設定中載入佈局狀態
+	// 實際的設定載入將在後續任務中實作
+	
+	// 暫時使用預設狀態
+	defaultState := map[string]interface{}{
+		"sidebar_visible":  true,
+		"notelist_visible": true,
+		"sidebar_width":    0.2,
+		"notelist_width":   0.25,
+		"compact_mode":     false,
+	}
+	
+	mw.layoutManager.LoadLayoutState(defaultState)
+}
+
+// handleEditAction 處理編輯動作
+// 參數：action（編輯動作名稱）
+func (mw *MainWindow) handleEditAction(action string) {
+	if mw.editor != nil {
+		switch action {
+		case "undo":
+			fmt.Println("復原功能將在後續任務中實作")
+		case "redo":
+			fmt.Println("重做功能將在後續任務中實作")
+		case "cut":
+			fmt.Println("剪下功能將在後續任務中實作")
+		case "copy":
+			fmt.Println("複製功能將在後續任務中實作")
+		case "paste":
+			fmt.Println("貼上功能將在後續任務中實作")
+		case "find":
+			fmt.Println("尋找功能將在後續任務中實作")
+		case "replace":
+			fmt.Println("取代功能將在後續任務中實作")
+		}
+	}
+}
+
+// handleFormatAction 處理格式化動作
+// 參數：action（格式化動作名稱）
+func (mw *MainWindow) handleFormatAction(action string) {
+	if mw.editor != nil {
+		switch action {
+		case "bold":
+			mw.editor.ApplyFormat("**", "**", "粗體文字")
+		case "italic":
+			mw.editor.ApplyFormat("*", "*", "斜體文字")
+		case "underline":
+			mw.editor.ApplyFormat("<u>", "</u>", "底線文字")
+		case "strikethrough":
+			mw.editor.ApplyFormat("~~", "~~", "刪除線文字")
+		case "heading_1":
+			mw.editor.ApplyFormat("# ", "", "標題 1")
+		case "heading_2":
+			mw.editor.ApplyFormat("## ", "", "標題 2")
+		case "heading_3":
+			mw.editor.ApplyFormat("### ", "", "標題 3")
+		}
+	}
+}
+
+// handleInsertAction 處理插入動作
+// 參數：action（插入動作名稱）
+func (mw *MainWindow) handleInsertAction(action string) {
+	if mw.editor != nil {
+		switch action {
+		case "link":
+			mw.editor.ApplyFormat("[", "](https://example.com)", "連結文字")
+		case "image":
+			mw.editor.ApplyFormat("![", "](image.png)", "圖片描述")
+		case "table":
+			mw.insertTable()
+		case "code":
+			mw.editor.ApplyFormat("`", "`", "程式碼")
+		case "bullet_list":
+			mw.editor.ApplyFormat("- ", "", "列表項目")
+		case "numbered_list":
+			mw.editor.ApplyFormat("1. ", "", "編號列表項目")
+		case "todo_list":
+			mw.editor.ApplyFormat("- [ ] ", "", "待辦事項")
+		}
+	}
+}
+
+// handleViewAction 處理視圖動作
+// 參數：action（視圖動作名稱）
+func (mw *MainWindow) handleViewAction(action string) {
+	switch action {
+
+	case "edit_mode":
+		if mw.viewManager != nil {
+			mw.viewManager.SetViewMode(ViewModeEdit)
+		}
+	case "preview_mode":
+		if mw.viewManager != nil {
+			mw.viewManager.SetViewMode(ViewModePreview)
+		}
+	case "split_view":
+		if mw.viewManager != nil {
+			mw.viewManager.SetViewMode(ViewModeSplit)
+		}
+	case "toggle_preview":
+		if mw.viewManager != nil {
+			mw.viewManager.ToggleViewMode()
+		}
+	case "fullscreen":
+		if mw.viewManager != nil {
+			mw.viewManager.ToggleFullscreen()
+		} else {
+			mw.window.SetFullScreen(!mw.window.FullScreen())
+		}
+	case "zoom_in":
+		fmt.Println("放大功能將在後續任務中實作")
+	case "zoom_out":
+		fmt.Println("縮小功能將在後續任務中實作")
+	case "toggle_theme":
+		if mw.themeService != nil {
+			currentTheme := mw.themeService.GetCurrentTheme()
+			if currentTheme == "dark" {
+				mw.themeService.SetTheme("light")
+			} else {
+				mw.themeService.SetTheme("dark")
+			}
+		}
+	}
+}
+
+// handleToolAction 處理工具動作
+// 參數：action（工具動作名稱）
+func (mw *MainWindow) handleToolAction(action string) {
+	switch action {
+	case "toggle_encryption":
+		fmt.Println("加密切換功能將在後續任務中實作")
+	case "toggle_favorite":
+		fmt.Println("最愛切換功能將在後續任務中實作")
+	case "manage_tags":
+		fmt.Println("標籤管理功能將在後續任務中實作")
+	case "show_stats":
+		fmt.Println("統計資訊功能將在後續任務中實作")
+	case "show_help":
+		fmt.Println("說明功能將在後續任務中實作")
+	}
+}
+
+// handleLayoutAction 處理佈局動作
+// 參數：action（佈局動作名稱）
+func (mw *MainWindow) handleLayoutAction(action string) {
+	switch action {
+	case "open_search":
+		fmt.Println("搜尋功能將在後續任務中實作")
+	}
+}
+
+// insertTable 插入表格
+// 在編輯器中插入 Markdown 表格模板
+func (mw *MainWindow) insertTable() {
+	tableTemplate := `| 標題1 | 標題2 | 標題3 |
+|-------|-------|-------|
+| 內容1 | 內容2 | 內容3 |
+| 內容4 | 內容5 | 內容6 |`
+	
+	if mw.editor != nil {
+		mw.editor.InsertText(tableTemplate)
+	}
+}
+
+// importFile 匯入檔案
+// 顯示檔案選擇對話框並匯入選擇的檔案
+func (mw *MainWindow) importFile() {
+	fmt.Println("匯入檔案功能將在後續任務中實作")
+}
+
+// exportFile 匯出檔案
+// 顯示匯出選項對話框並匯出當前檔案
+func (mw *MainWindow) exportFile() {
+	fmt.Println("匯出檔案功能將在後續任務中實作")
+}
+
+// ToggleSidebar 切換側邊欄顯示
+// 提供外部介面來切換側邊欄的顯示/隱藏
+func (mw *MainWindow) ToggleSidebar() {
+	if mw.layoutManager != nil {
+		mw.layoutManager.ToggleSidebar()
+	}
+}
+
+// ToggleNoteList 切換筆記列表顯示
+// 提供外部介面來切換筆記列表的顯示/隱藏
+func (mw *MainWindow) ToggleNoteList() {
+	if mw.layoutManager != nil {
+		mw.layoutManager.ToggleNoteList()
+	}
+}
+
+// SetSidebarWidth 設定側邊欄寬度
+// 參數：width（寬度比例，0.0-1.0）
+func (mw *MainWindow) SetSidebarWidth(width float64) {
+	if mw.layoutManager != nil {
+		mw.layoutManager.SetSidebarWidth(width)
+	}
+}
+
+// SetNoteListWidth 設定筆記列表寬度
+// 參數：width（寬度比例）
+func (mw *MainWindow) SetNoteListWidth(width float64) {
+	if mw.layoutManager != nil {
+		mw.layoutManager.SetNoteListWidth(width)
+	}
+}
+
+// handleViewModeChanged 處理視圖模式變更事件
+// 參數：mode（新的視圖模式）
+//
+// 執行流程：
+// 1. 更新狀態欄的視圖模式顯示
+// 2. 更新工具欄按鈕狀態
+// 3. 保存視圖狀態到設定
+func (mw *MainWindow) handleViewModeChanged(mode ViewMode) {
+	// 更新狀態欄顯示
+	if mw.viewModeLabel != nil {
+		mw.viewModeLabel.SetText(mw.viewManager.GetViewModeString(mode))
+		mw.viewModeLabel.Refresh()
+	}
+	
+	// 更新工具欄按鈕狀態
+	mw.updateViewModeButtons(mode)
+	
+	// 保存視圖狀態（如果需要）
+	// 這裡可以添加保存到設定檔的邏輯
+}
+
+// handleFullscreenToggled 處理全螢幕切換事件
+// 參數：fullscreen（是否為全螢幕模式）
+//
+// 執行流程：
+// 1. 更新狀態欄顯示
+// 2. 更新工具欄按鈕狀態
+// 3. 調整 UI 元件的可見性
+func (mw *MainWindow) handleFullscreenToggled(fullscreen bool) {
+	// 更新狀態欄顯示
+	if mw.viewModeLabel != nil {
+		currentMode := mw.viewManager.GetCurrentViewModeString()
+		if fullscreen {
+			mw.viewModeLabel.SetText(currentMode + " (全螢幕)")
+		} else {
+			mw.viewModeLabel.SetText(currentMode)
+		}
+		mw.viewModeLabel.Refresh()
+	}
+	
+	// 更新工具欄按鈕狀態
+	if mw.enhancedToolbar != nil {
+		fullscreenBtn := mw.enhancedToolbar.GetButton("fullscreen")
+		if fullscreenBtn != nil {
+			if fullscreen {
+				fullscreenBtn.SetText("退出全螢幕")
+			} else {
+				fullscreenBtn.SetText("全螢幕")
+			}
+		}
+	}
+}
+
+// handleSplitRatioChanged 處理分割比例變更事件
+// 參數：ratio（新的分割比例）
+//
+// 執行流程：
+// 1. 保存分割比例到設定
+// 2. 更新相關的 UI 狀態
+func (mw *MainWindow) handleSplitRatioChanged(ratio float64) {
+	// 這裡可以添加保存分割比例到設定檔的邏輯
+	// 或者更新其他相關的 UI 狀態
+}
+
+// updateViewModeButtons 更新視圖模式按鈕狀態
+// 參數：mode（當前視圖模式）
+//
+// 執行流程：
+// 1. 重置所有視圖模式按鈕狀態
+// 2. 高亮當前活動的視圖模式按鈕
+func (mw *MainWindow) updateViewModeButtons(mode ViewMode) {
+	if mw.enhancedToolbar == nil {
+		return
+	}
+	
+	// 重置所有視圖模式按鈕
+	editBtn := mw.enhancedToolbar.GetButton("edit_mode")
+	previewBtn := mw.enhancedToolbar.GetButton("preview_mode")
+	splitBtn := mw.enhancedToolbar.GetButton("split_view")
+	
+	// 根據當前模式設定按鈕狀態
+	switch mode {
+	case ViewModeEdit:
+		if editBtn != nil {
+			editBtn.SetText("📝 編輯")
+		}
+		if previewBtn != nil {
+			previewBtn.SetText("👁️ 預覽")
+		}
+		if splitBtn != nil {
+			splitBtn.SetText("⚡ 分割")
+		}
+	case ViewModePreview:
+		if editBtn != nil {
+			editBtn.SetText("📝 編輯")
+		}
+		if previewBtn != nil {
+			previewBtn.SetText("👁️ 預覽")
+		}
+		if splitBtn != nil {
+			splitBtn.SetText("⚡ 分割")
+		}
+	case ViewModeSplit:
+		if editBtn != nil {
+			editBtn.SetText("📝 編輯")
+		}
+		if previewBtn != nil {
+			previewBtn.SetText("👁️ 預覽")
+		}
+		if splitBtn != nil {
+			splitBtn.SetText("⚡ 分割")
+		}
+	}
+}
+
+// GetViewManager 取得視圖管理器實例
+// 回傳：視圖管理器實例
+// 用於其他元件需要存取視圖管理功能時使用
+func (mw *MainWindow) GetViewManager() *ViewManager {
+	return mw.viewManager
+}
+
+// SaveViewState 保存視圖狀態到設定
+// 將當前的視圖狀態保存到應用程式設定中
+//
+// 執行流程：
+// 1. 從視圖管理器取得當前狀態
+// 2. 保存到應用程式設定
+// 3. 持久化設定到檔案
+func (mw *MainWindow) SaveViewState() {
+	if mw.viewManager == nil || mw.settings == nil {
+		return
+	}
+	
+	// 取得當前視圖狀態
+	viewState := mw.viewManager.SaveViewState()
+	
+	// 這裡可以將視圖狀態保存到設定檔
+	// 實際的保存邏輯會在設定管理功能中實作
+	_ = viewState
+}
+
+// LoadViewState 從設定載入視圖狀態
+// 從應用程式設定中載入之前保存的視圖狀態
+//
+// 執行流程：
+// 1. 從應用程式設定讀取視圖狀態
+// 2. 應用到視圖管理器
+// 3. 更新 UI 顯示
+func (mw *MainWindow) LoadViewState() {
+	if mw.viewManager == nil || mw.settings == nil {
+		return
+	}
+	
+	// 這裡可以從設定檔載入視圖狀態
+	// 實際的載入邏輯會在設定管理功能中實作
+	
+	// 暫時使用預設狀態
+	defaultState := ViewState{
+		Mode:       ViewModeSplit,
+		SplitRatio: 0.5,
+		IsFullscreen: false,
+		SidebarHidden: false,
+		NoteListHidden: false,
+	}
+	
+	mw.viewManager.LoadViewState(defaultState)
 }

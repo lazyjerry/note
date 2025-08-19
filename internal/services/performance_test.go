@@ -24,7 +24,7 @@ func BenchmarkEditorServiceLargeFile(b *testing.B) {
 	// 建立測試用的儲存庫和服務
 	repo, _ := repositories.NewLocalFileRepository("test_data")
 	perfService := NewPerformanceService(nil)
-	editorService := NewEditorService(repo, nil, nil, nil, perfService)
+	editorService := NewEditorService(repo, nil, nil, nil, perfService, nil)
 	
 	// 測試不同大小的檔案
 	testSizes := []struct {
@@ -153,7 +153,7 @@ func BenchmarkMemoryOptimization(b *testing.B) {
 func BenchmarkConcurrentOperations(b *testing.B) {
 	repo, _ := repositories.NewLocalFileRepository("test_data")
 	perfService := NewPerformanceService(nil)
-	editorService := NewEditorService(repo, nil, nil, nil, perfService)
+	editorService := NewEditorService(repo, nil, nil, nil, perfService, nil)
 	
 	b.Run("ConcurrentNoteOperations", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
@@ -191,7 +191,7 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 func TestLargeFileProcessing(t *testing.T) {
 	repo, _ := repositories.NewLocalFileRepository("test_data")
 	perfService := NewPerformanceService(nil)
-	editorService := NewEditorService(repo, nil, nil, nil, perfService)
+	editorService := NewEditorService(repo, nil, nil, nil, perfService, nil)
 	
 	// 測試不同大小的檔案
 	testCases := []struct {
@@ -251,7 +251,7 @@ func TestLargeFileProcessing(t *testing.T) {
 func TestCacheOptimization(t *testing.T) {
 	repo, _ := repositories.NewLocalFileRepository("test_data")
 	perfService := NewPerformanceService(nil)
-	editorService := NewEditorService(repo, nil, nil, nil, perfService)
+	editorService := NewEditorService(repo, nil, nil, nil, perfService, nil)
 	
 	// 注意：由於介面限制，我們無法直接設定快取大小
 	// 這個測試將驗證基本的快取功能
@@ -292,7 +292,7 @@ func TestCacheOptimization(t *testing.T) {
 func TestMemoryMonitoring(t *testing.T) {
 	repo, _ := repositories.NewLocalFileRepository("test_data")
 	perfService := NewPerformanceService(nil)
-	editorService := NewEditorService(repo, nil, nil, nil, perfService)
+	editorService := NewEditorService(repo, nil, nil, nil, perfService, nil)
 	
 	// 測試基本記憶體監控功能
 	memUsage, err := perfService.GetMemoryUsage()
@@ -338,7 +338,7 @@ func TestMemoryMonitoring(t *testing.T) {
 func TestPerformanceIntegration(t *testing.T) {
 	repo, _ := repositories.NewLocalFileRepository("test_data")
 	perfService := NewPerformanceService(nil)
-	editorService := NewEditorService(repo, nil, nil, nil, perfService)
+	editorService := NewEditorService(repo, nil, nil, nil, perfService, nil)
 	
 	// 啟動效能監控
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

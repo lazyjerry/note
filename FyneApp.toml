@@ -1,0 +1,16 @@
+[Details]
+Icon = "assets/Icon.png"
+Name = "Mac筆記本"
+ID = "com.notebook.mac-notebook-app"
+Version = "1.0.0"
+Build = 1
+
+[Development]
+AutoInject = true
+DeveloperID = ""
+DeveloperName = "Mac筆記本開發團隊"
+
+[Metadata]
+Developer = "Mac筆記本開發團隊"
+Website = "https://github.com/mac-notebook-app"
+Category = "Productivity"

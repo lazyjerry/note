@@ -32,6 +32,20 @@ func (m *mockEditorService) DecryptWithPassword(noteID, password string) (string
 func (m *mockEditorService) CloseNote(noteID string) {}
 func (m *mockEditorService) GetActiveNote(noteID string) (*models.Note, bool) { return nil, false }
 
+// 智慧編輯功能的空實作
+func (m *mockEditorService) GetAutoCompleteSuggestions(content string, cursorPosition int) []AutoCompleteSuggestion { return []AutoCompleteSuggestion{} }
+func (m *mockEditorService) FormatTableContent(tableContent string) (string, error) { return tableContent, nil }
+func (m *mockEditorService) InsertLinkMarkdown(text, url string) string { return "[" + text + "](" + url + ")" }
+func (m *mockEditorService) InsertImageMarkdown(altText, imagePath string) string { return "![" + altText + "](" + imagePath + ")" }
+func (m *mockEditorService) GetSupportedCodeLanguages() []string { return []string{"go"} }
+func (m *mockEditorService) FormatCodeBlockMarkdown(code, language string) string { return "```" + language + "\n" + code + "\n```" }
+func (m *mockEditorService) FormatMathExpressionMarkdown(expression string, isInline bool) string { return "$" + expression + "$" }
+func (m *mockEditorService) ValidateMarkdownContent(content string) (bool, []string) { return true, []string{} }
+func (m *mockEditorService) GenerateTableTemplateMarkdown(rows, cols int) string { return "| 欄位1 | 欄位2 |\n|-------|-------|\n| 內容1 | 內容2 |" }
+func (m *mockEditorService) PreviewMarkdownWithHighlight(content string) string { return "<p>" + content + "</p>" }
+func (m *mockEditorService) GetSmartEditingService() SmartEditingService { return NewSmartEditingService() }
+func (m *mockEditorService) SetSmartEditingService(smartEditSvc SmartEditingService) {}
+
 // TestNewPerformanceService 測試效能服務的建立
 // 驗證效能服務實例是否正確初始化
 //

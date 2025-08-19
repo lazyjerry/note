@@ -52,6 +52,64 @@ type EditorService interface {
 	// 參數：noteID（筆記 ID）
 	// 回傳：筆記實例和是否存在
 	GetActiveNote(noteID string) (*models.Note, bool)
+	
+	// 智慧編輯功能
+	// GetAutoCompleteSuggestions 取得自動完成建議
+	// 參數：content（當前內容）、cursorPosition（游標位置）
+	// 回傳：自動完成建議陣列
+	GetAutoCompleteSuggestions(content string, cursorPosition int) []AutoCompleteSuggestion
+	
+	// FormatTableContent 格式化表格內容
+	// 參數：tableContent（表格內容）
+	// 回傳：格式化後的表格字串和可能的錯誤
+	FormatTableContent(tableContent string) (string, error)
+	
+	// InsertLinkMarkdown 插入 Markdown 連結
+	// 參數：text（連結文字）、url（連結網址）
+	// 回傳：格式化的 Markdown 連結字串
+	InsertLinkMarkdown(text, url string) string
+	
+	// InsertImageMarkdown 插入 Markdown 圖片
+	// 參數：altText（替代文字）、imagePath（圖片路徑）
+	// 回傳：格式化的 Markdown 圖片字串
+	InsertImageMarkdown(altText, imagePath string) string
+	
+	// GetSupportedCodeLanguages 取得支援的程式語言列表
+	// 回傳：支援的程式語言陣列
+	GetSupportedCodeLanguages() []string
+	
+	// FormatCodeBlockMarkdown 格式化程式碼區塊
+	// 參數：code（程式碼內容）、language（程式語言）
+	// 回傳：格式化的 Markdown 程式碼區塊
+	FormatCodeBlockMarkdown(code, language string) string
+	
+	// FormatMathExpressionMarkdown 格式化數學公式
+	// 參數：expression（數學表達式）、isInline（是否為行內公式）
+	// 回傳：格式化的 LaTeX 數學公式字串
+	FormatMathExpressionMarkdown(expression string, isInline bool) string
+	
+	// ValidateMarkdownContent 驗證 Markdown 內容的語法正確性
+	// 參數：content（要驗證的 Markdown 內容）
+	// 回傳：驗證結果和可能的錯誤列表
+	ValidateMarkdownContent(content string) (bool, []string)
+	
+	// GenerateTableTemplateMarkdown 生成表格模板
+	// 參數：rows（行數）、cols（列數）
+	// 回傳：表格模板字串
+	GenerateTableTemplateMarkdown(rows, cols int) string
+	
+	// PreviewMarkdownWithHighlight 預覽 Markdown 內容並包含程式碼高亮
+	// 參數：content（Markdown 格式的內容）
+	// 回傳：轉換後的 HTML 字串（包含語法高亮）
+	PreviewMarkdownWithHighlight(content string) string
+	
+	// GetSmartEditingService 取得智慧編輯服務實例
+	// 回傳：SmartEditingService 介面實例
+	GetSmartEditingService() SmartEditingService
+	
+	// SetSmartEditingService 設定智慧編輯服務實例
+	// 參數：smartEditSvc（智慧編輯服務實例）
+	SetSmartEditingService(smartEditSvc SmartEditingService)
 }
 
 // FileManagerService 定義檔案系統操作的介面
@@ -303,4 +361,228 @@ type NotificationService interface {
 	// SetSaveStatusCallback 設定保存狀態回調函數（用於 UI 更新）
 	// 參數：callback（保存狀態更新時的回調函數）
 	SetSaveStatusCallback(callback func(string, *SaveStatusInfo))
+}
+
+// SmartEditingService 定義智慧編輯功能的介面
+// 負責處理 Markdown 語法自動完成、表格編輯、連結插入等進階編輯功能
+type SmartEditingService interface {
+	// AutoCompleteMarkdown 提供 Markdown 語法自動完成建議
+	// 參數：content（當前內容）、cursorPosition（游標位置）
+	// 回傳：自動完成建議陣列
+	AutoCompleteMarkdown(content string, cursorPosition int) []AutoCompleteSuggestion
+	
+	// FormatTable 格式化表格內容
+	// 參數：tableContent（表格內容）
+	// 回傳：格式化後的表格字串和可能的錯誤
+	FormatTable(tableContent string) (string, error)
+	
+	// InsertLink 插入連結
+	// 參數：text（連結文字）、url（連結網址）
+	// 回傳：格式化的 Markdown 連結字串
+	InsertLink(text, url string) string
+	
+	// InsertImage 插入圖片
+	// 參數：altText（替代文字）、imagePath（圖片路徑）
+	// 回傳：格式化的 Markdown 圖片字串
+	InsertImage(altText, imagePath string) string
+	
+	// HighlightCodeBlock 為程式碼區塊添加語法高亮
+	// 參數：code（程式碼內容）、language（程式語言）
+	// 回傳：帶有語法高亮的 HTML 字串
+	HighlightCodeBlock(code, language string) string
+	
+	// FormatMathExpression 格式化數學公式
+	// 參數：expression（數學表達式）、isInline（是否為行內公式）
+	// 回傳：格式化的 LaTeX 數學公式字串
+	FormatMathExpression(expression string, isInline bool) string
+	
+	// GetSupportedLanguages 取得支援的程式語言列表
+	// 回傳：支援的程式語言陣列
+	GetSupportedLanguages() []string
+	
+	// ValidateMarkdownSyntax 驗證 Markdown 語法的正確性
+	// 參數：content（要驗證的 Markdown 內容）
+	// 回傳：驗證結果和可能的錯誤列表
+	ValidateMarkdownSyntax(content string) (bool, []string)
+	
+	// GenerateTableTemplate 生成表格模板
+	// 參數：rows（行數）、cols（列數）
+	// 回傳：表格模板字串
+	GenerateTableTemplate(rows, cols int) string
+	
+	// FormatCodeBlock 格式化程式碼區塊
+	// 參數：code（程式碼內容）、language（程式語言）
+	// 回傳：格式化的 Markdown 程式碼區塊
+	FormatCodeBlock(code, language string) string
+}
+
+// ExportService 定義匯出和分享功能的介面
+// 負責處理筆記的各種格式匯出、批量匯出和分享功能
+type ExportService interface {
+	// ExportToPDF 將筆記匯出為 PDF 格式
+	// 參數：note（要匯出的筆記）、outputPath（輸出檔案路徑）、options（匯出選項）
+	// 回傳：可能的錯誤
+	ExportToPDF(note *models.Note, outputPath string, options *ExportOptions) error
+	
+	// ExportToHTML 將筆記匯出為 HTML 格式
+	// 參數：note（要匯出的筆記）、outputPath（輸出檔案路徑）、options（匯出選項）
+	// 回傳：可能的錯誤
+	ExportToHTML(note *models.Note, outputPath string, options *ExportOptions) error
+	
+	// ExportToWord 將筆記匯出為 Word 文件格式
+	// 參數：note（要匯出的筆記）、outputPath（輸出檔案路徑）、options（匯出選項）
+	// 回傳：可能的錯誤
+	ExportToWord(note *models.Note, outputPath string, options *ExportOptions) error
+	
+	// BatchExport 批量匯出多個筆記
+	// 參數：notes（要匯出的筆記陣列）、outputDir（輸出目錄）、format（匯出格式）、options（匯出選項）
+	// 回傳：匯出結果和可能的錯誤
+	BatchExport(notes []*models.Note, outputDir string, format ExportFormat, options *ExportOptions) (*BatchExportResult, error)
+	
+	// ShareNote 分享筆記
+	// 參數：note（要分享的筆記）、shareOptions（分享選項）
+	// 回傳：分享結果和可能的錯誤
+	ShareNote(note *models.Note, shareOptions *ShareOptions) (*ShareResult, error)
+	
+	// GetSupportedFormats 取得支援的匯出格式列表
+	// 回傳：支援的匯出格式陣列
+	GetSupportedFormats() []ExportFormat
+	
+	// ValidateExportPath 驗證匯出路徑的有效性
+	// 參數：path（要驗證的路徑）、format（匯出格式）
+	// 回傳：路徑是否有效和可能的錯誤訊息
+	ValidateExportPath(path string, format ExportFormat) (bool, string)
+	
+	// GetExportProgress 取得匯出進度
+	// 參數：exportID（匯出任務 ID）
+	// 回傳：匯出進度資訊
+	GetExportProgress(exportID string) *ExportProgress
+	
+	// CancelExport 取消匯出任務
+	// 參數：exportID（匯出任務 ID）
+	// 回傳：是否成功取消
+	CancelExport(exportID string) bool
+}
+
+// ExportFormat 定義匯出格式的列舉
+type ExportFormat int
+
+const (
+	// ExportFormatPDF PDF 格式
+	ExportFormatPDF ExportFormat = iota
+	// ExportFormatHTML HTML 格式
+	ExportFormatHTML
+	// ExportFormatWord Word 文件格式
+	ExportFormatWord
+	// ExportFormatMarkdown Markdown 格式
+	ExportFormatMarkdown
+)
+
+// String 回傳匯出格式的字串表示
+func (f ExportFormat) String() string {
+	switch f {
+	case ExportFormatPDF:
+		return "PDF"
+	case ExportFormatHTML:
+		return "HTML"
+	case ExportFormatWord:
+		return "Word"
+	case ExportFormatMarkdown:
+		return "Markdown"
+	default:
+		return "Unknown"
+	}
+}
+
+// ExportOptions 定義匯出選項
+type ExportOptions struct {
+	IncludeMetadata    bool   `json:"include_metadata"`    // 是否包含元資料
+	IncludeTableOfContents bool `json:"include_toc"`      // 是否包含目錄
+	Theme              string `json:"theme"`               // 主題樣式
+	FontSize           int    `json:"font_size"`           // 字體大小
+	PageSize           string `json:"page_size"`           // 頁面大小（A4, Letter 等）
+	Margins            string `json:"margins"`             // 頁面邊距
+	IncludeImages      bool   `json:"include_images"`      // 是否包含圖片
+	ImageQuality       int    `json:"image_quality"`       // 圖片品質（1-100）
+	WatermarkText      string `json:"watermark_text"`      // 浮水印文字
+	HeaderText         string `json:"header_text"`         // 頁首文字
+	FooterText         string `json:"footer_text"`         // 頁尾文字
+}
+
+// BatchExportResult 代表批量匯出的結果
+type BatchExportResult struct {
+	TotalFiles    int      `json:"total_files"`    // 總檔案數
+	SuccessCount  int      `json:"success_count"`  // 成功匯出數量
+	FailureCount  int      `json:"failure_count"`  // 失敗匯出數量
+	FailedFiles   []string `json:"failed_files"`   // 失敗的檔案列表
+	OutputPath    string   `json:"output_path"`    // 輸出路徑
+	ElapsedTime   time.Duration `json:"elapsed_time"` // 耗費時間
+}
+
+// ShareOptions 定義分享選項
+type ShareOptions struct {
+	ShareType     ShareType `json:"share_type"`     // 分享類型
+	ExpiryTime    time.Time `json:"expiry_time"`    // 過期時間
+	Password      string    `json:"password"`       // 分享密碼
+	AllowDownload bool      `json:"allow_download"` // 是否允許下載
+	AllowEdit     bool      `json:"allow_edit"`     // 是否允許編輯
+	Recipients    []string  `json:"recipients"`     // 收件人列表
+}
+
+// ShareType 定義分享類型的列舉
+type ShareType int
+
+const (
+	// ShareTypeLink 連結分享
+	ShareTypeLink ShareType = iota
+	// ShareTypeEmail 電子郵件分享
+	ShareTypeEmail
+	// ShareTypeAirDrop AirDrop 分享
+	ShareTypeAirDrop
+	// ShareTypeClipboard 複製到剪貼簿
+	ShareTypeClipboard
+)
+
+// ShareResult 代表分享操作的結果
+type ShareResult struct {
+	ShareID   string    `json:"share_id"`   // 分享 ID
+	ShareURL  string    `json:"share_url"`  // 分享連結
+	ExpiryTime time.Time `json:"expiry_time"` // 過期時間
+	Success   bool      `json:"success"`    // 是否成功
+	Message   string    `json:"message"`    // 結果訊息
+}
+
+// ExportProgress 代表匯出進度資訊
+type ExportProgress struct {
+	ExportID    string        `json:"export_id"`    // 匯出任務 ID
+	Progress    float64       `json:"progress"`     // 進度百分比（0.0 - 1.0）
+	Status      ExportStatus  `json:"status"`       // 匯出狀態
+	CurrentFile string        `json:"current_file"` // 當前處理的檔案
+	ElapsedTime time.Duration `json:"elapsed_time"` // 已耗費時間
+	EstimatedTime time.Duration `json:"estimated_time"` // 預估剩餘時間
+	Error       error         `json:"error,omitempty"` // 錯誤資訊（如果有）
+}
+
+// ExportStatus 定義匯出狀態的列舉
+type ExportStatus int
+
+const (
+	// ExportStatusPending 等待中
+	ExportStatusPending ExportStatus = iota
+	// ExportStatusInProgress 進行中
+	ExportStatusInProgress
+	// ExportStatusCompleted 已完成
+	ExportStatusCompleted
+	// ExportStatusFailed 失敗
+	ExportStatusFailed
+	// ExportStatusCancelled 已取消
+	ExportStatusCancelled
+)
+
+// AutoCompleteSuggestion 代表自動完成建議項目
+type AutoCompleteSuggestion struct {
+	Text        string `json:"text"`        // 建議的文字內容
+	Description string `json:"description"` // 建議的描述
+	Type        string `json:"type"`        // 建議類型（header, list, link, etc.）
+	InsertText  string `json:"insert_text"` // 要插入的實際文字
 }

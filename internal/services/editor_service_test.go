@@ -134,8 +134,9 @@ func createTestEditorService() (EditorService, *mockFileRepository) {
 	mockEncryption := &mockEncryptionService{}
 	mockPassword := &mockPasswordService{}
 	mockBiometric := &mockBiometricService{}
+	mockSmartEdit := NewSmartEditingService()
 	
-	service := NewEditorService(mockRepo, mockEncryption, mockPassword, mockBiometric, nil)
+	service := NewEditorService(mockRepo, mockEncryption, mockPassword, mockBiometric, nil, mockSmartEdit)
 	return service, mockRepo
 }
 
@@ -861,5 +862,475 @@ func TestGetEncryptionType(t *testing.T) {
 	}
 	if encType != "chacha20" {
 		t.Errorf("加密類型不正確，期望: chacha20，實際: %s", encType)
+	}
+}
+
+// ========== 智慧編輯功能測試 ==========
+
+// TestGetAutoCompleteSuggestions 測試自動完成建議功能
+// 驗證編輯器服務能正確提供 Markdown 自動完成建議
+func TestGetAutoCompleteSuggestions(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name           string
+		content        string
+		cursorPosition int
+		expectSuggestions bool
+		description    string
+	}{
+		{
+			name:           "標題自動完成",
+			content:        "#",
+			cursorPosition: 1,
+			expectSuggestions: true,
+			description:    "輸入 # 時應該提供標題建議",
+		},
+		{
+			name:           "列表自動完成",
+			content:        "- ",
+			cursorPosition: 2,
+			expectSuggestions: true,
+			description:    "輸入 - 時應該提供列表建議",
+		},
+		{
+			name:           "空內容",
+			content:        "",
+			cursorPosition: 0,
+			expectSuggestions: false,
+			description:    "空內容時可能沒有建議",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行自動完成
+			suggestions := service.GetAutoCompleteSuggestions(tc.content, tc.cursorPosition)
+			
+			// 驗證結果
+			hasSuggestions := len(suggestions) > 0
+			if hasSuggestions != tc.expectSuggestions {
+				t.Errorf("%s：預期有建議 %v，實際有建議 %v", tc.description, tc.expectSuggestions, hasSuggestions)
+			}
+		})
+	}
+}
+
+// TestFormatTableContent 測試表格格式化功能
+// 驗證編輯器服務能正確格式化表格內容
+func TestFormatTableContent(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		input       string
+		expectError bool
+		description string
+	}{
+		{
+			name: "基本表格格式化",
+			input: `| 姓名 | 年齡 |
+|------|------|
+| 張三 | 25 |`,
+			expectError: false,
+			description: "基本表格應該能正確格式化",
+		},
+		{
+			name:        "空表格",
+			input:       "",
+			expectError: true,
+			description: "空表格應該回傳錯誤",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行表格格式化
+			result, err := service.FormatTableContent(tc.input)
+			
+			// 檢查錯誤狀態
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("%s：預期會發生錯誤，但沒有錯誤發生", tc.description)
+				}
+				return
+			}
+			
+			if err != nil {
+				t.Errorf("%s：不應該發生錯誤，但發生了錯誤：%v", tc.description, err)
+				return
+			}
+			
+			// 驗證格式化結果
+			if result == "" {
+				t.Errorf("%s：格式化結果不應該為空", tc.description)
+			}
+		})
+	}
+}
+
+// TestInsertLinkMarkdown 測試連結插入功能
+// 驗證編輯器服務能正確插入 Markdown 連結
+func TestInsertLinkMarkdown(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		text        string
+		url         string
+		expected    string
+		description string
+	}{
+		{
+			name:        "完整連結",
+			text:        "Google",
+			url:         "https://www.google.com",
+			expected:    "[Google](https://www.google.com)",
+			description: "完整的連結應該正確格式化",
+		},
+		{
+			name:        "空文字",
+			text:        "",
+			url:         "https://www.google.com",
+			expected:    "[https://www.google.com](https://www.google.com)",
+			description: "空文字時應該使用網址作為文字",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行連結插入
+			result := service.InsertLinkMarkdown(tc.text, tc.url)
+			
+			// 驗證結果
+			if result != tc.expected {
+				t.Errorf("%s：預期 %s，實際得到 %s", tc.description, tc.expected, result)
+			}
+		})
+	}
+}
+
+// TestInsertImageMarkdown 測試圖片插入功能
+// 驗證編輯器服務能正確插入 Markdown 圖片
+func TestInsertImageMarkdown(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		altText     string
+		imagePath   string
+		expected    string
+		description string
+	}{
+		{
+			name:        "完整圖片",
+			altText:     "示例圖片",
+			imagePath:   "/images/example.png",
+			expected:    "![示例圖片](/images/example.png)",
+			description: "完整的圖片應該正確格式化",
+		},
+		{
+			name:        "空替代文字",
+			altText:     "",
+			imagePath:   "/images/example.png",
+			expected:    "![圖片](/images/example.png)",
+			description: "空替代文字時應該使用預設文字",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行圖片插入
+			result := service.InsertImageMarkdown(tc.altText, tc.imagePath)
+			
+			// 驗證結果
+			if result != tc.expected {
+				t.Errorf("%s：預期 %s，實際得到 %s", tc.description, tc.expected, result)
+			}
+		})
+	}
+}
+
+// TestGetSupportedCodeLanguages 測試取得支援語言列表功能
+// 驗證編輯器服務能正確回傳支援的程式語言列表
+func TestGetSupportedCodeLanguages(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	// 取得支援的語言列表
+	languages := service.GetSupportedCodeLanguages()
+	
+	// 驗證列表不為空
+	if len(languages) == 0 {
+		t.Fatal("支援的語言列表不應該為空")
+	}
+	
+	// 驗證包含常見的程式語言
+	expectedLanguages := []string{"go", "javascript", "python"}
+	for _, expected := range expectedLanguages {
+		found := false
+		for _, lang := range languages {
+			if lang == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("支援的語言列表應該包含 %s", expected)
+		}
+	}
+}
+
+// TestFormatCodeBlockMarkdown 測試程式碼區塊格式化功能
+// 驗證編輯器服務能正確格式化程式碼區塊
+func TestFormatCodeBlockMarkdown(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		code        string
+		language    string
+		description string
+	}{
+		{
+			name:        "Go 程式碼區塊",
+			code:        "func main() {}",
+			language:    "go",
+			description: "Go 程式碼區塊應該正確格式化",
+		},
+		{
+			name:        "沒有語言的程式碼區塊",
+			code:        "some code",
+			language:    "",
+			description: "沒有指定語言時應該使用預設格式",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行程式碼區塊格式化
+			result := service.FormatCodeBlockMarkdown(tc.code, tc.language)
+			
+			// 驗證結果包含程式碼區塊標記
+			if !strings.Contains(result, "```") {
+				t.Errorf("%s：結果應該包含程式碼區塊標記", tc.description)
+			}
+			
+			// 驗證包含程式碼內容
+			if !strings.Contains(result, tc.code) {
+				t.Errorf("%s：結果應該包含程式碼內容", tc.description)
+			}
+		})
+	}
+}
+
+// TestFormatMathExpressionMarkdown 測試數學公式格式化功能
+// 驗證編輯器服務能正確格式化數學公式
+func TestFormatMathExpressionMarkdown(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		expression  string
+		isInline    bool
+		description string
+	}{
+		{
+			name:        "行內數學公式",
+			expression:  "x^2 + y^2 = z^2",
+			isInline:    true,
+			description: "行內數學公式應該用單個 $ 包圍",
+		},
+		{
+			name:        "獨立數學公式",
+			expression:  "E = mc^2",
+			isInline:    false,
+			description: "獨立數學公式應該用雙 $$ 包圍",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行數學公式格式化
+			result := service.FormatMathExpressionMarkdown(tc.expression, tc.isInline)
+			
+			// 驗證結果包含數學公式標記
+			if !strings.Contains(result, "$") {
+				t.Errorf("%s：結果應該包含數學公式標記", tc.description)
+			}
+			
+			// 驗證包含表達式內容
+			if !strings.Contains(result, tc.expression) && tc.expression != "" {
+				t.Errorf("%s：結果應該包含表達式內容", tc.description)
+			}
+		})
+	}
+}
+
+// TestValidateMarkdownContent 測試 Markdown 內容驗證功能
+// 驗證編輯器服務能正確驗證 Markdown 語法
+func TestValidateMarkdownContent(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		content     string
+		expectValid bool
+		description string
+	}{
+		{
+			name:        "正確的 Markdown 語法",
+			content:     "# 標題\n\n這是一段文字。",
+			expectValid: true,
+			description: "正確的 Markdown 語法應該通過驗證",
+		},
+		{
+			name:        "不完整的連結語法",
+			content:     "這是一個 [不完整的連結",
+			expectValid: false,
+			description: "不完整的連結語法應該被檢測出來",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行語法驗證
+			isValid, errors := service.ValidateMarkdownContent(tc.content)
+			
+			// 驗證結果
+			if isValid != tc.expectValid {
+				t.Errorf("%s：預期驗證結果為 %v，實際得到 %v", tc.description, tc.expectValid, isValid)
+				if len(errors) > 0 {
+					t.Logf("錯誤詳情：%v", errors)
+				}
+			}
+		})
+	}
+}
+
+// TestGenerateTableTemplateMarkdown 測試表格模板生成功能
+// 驗證編輯器服務能正確生成表格模板
+func TestGenerateTableTemplateMarkdown(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		rows        int
+		cols        int
+		description string
+	}{
+		{
+			name:        "3x3 表格",
+			rows:        3,
+			cols:        3,
+			description: "3x3 表格模板應該正確生成",
+		},
+		{
+			name:        "2x4 表格",
+			rows:        2,
+			cols:        4,
+			description: "2x4 表格模板應該正確生成",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行表格模板生成
+			result := service.GenerateTableTemplateMarkdown(tc.rows, tc.cols)
+			
+			// 驗證結果不為空
+			if result == "" {
+				t.Errorf("%s：表格模板不應該為空", tc.description)
+				return
+			}
+			
+			// 驗證包含表格標記
+			if !strings.Contains(result, "|") {
+				t.Errorf("%s：表格模板應該包含表格標記 |", tc.description)
+			}
+			
+			// 驗證包含分隔行
+			if !strings.Contains(result, "-------") {
+				t.Errorf("%s：表格模板應該包含分隔行", tc.description)
+			}
+		})
+	}
+}
+
+// TestPreviewMarkdownWithHighlight 測試帶語法高亮的 Markdown 預覽功能
+// 驗證編輯器服務能正確預覽 Markdown 內容並包含語法高亮
+func TestPreviewMarkdownWithHighlight(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	testCases := []struct {
+		name        string
+		content     string
+		description string
+	}{
+		{
+			name:        "基本 Markdown 內容",
+			content:     "# 標題\n\n這是一段文字。",
+			description: "基本 Markdown 內容應該正確轉換為 HTML",
+		},
+		{
+			name:        "包含程式碼區塊的內容",
+			content:     "# 標題\n\n```go\nfunc main() {}\n```",
+			description: "包含程式碼區塊的內容應該正確處理",
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// 執行 Markdown 預覽
+			result := service.PreviewMarkdownWithHighlight(tc.content)
+			
+			// 驗證結果不為空
+			if result == "" {
+				t.Errorf("%s：預覽結果不應該為空", tc.description)
+				return
+			}
+			
+			// 驗證包含 HTML 標籤
+			if !strings.Contains(result, "<") {
+				t.Errorf("%s：預覽結果應該包含 HTML 標籤", tc.description)
+			}
+		})
+	}
+}
+
+// TestGetSmartEditingService 測試取得智慧編輯服務功能
+// 驗證編輯器服務能正確回傳智慧編輯服務實例
+func TestGetSmartEditingService(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	// 取得智慧編輯服務
+	smartEditSvc := service.GetSmartEditingService()
+	
+	// 驗證服務不為空
+	if smartEditSvc == nil {
+		t.Fatal("智慧編輯服務不應該為空")
+	}
+	
+	// 驗證服務實作了正確的介面
+	_, ok := smartEditSvc.(SmartEditingService)
+	if !ok {
+		t.Fatal("回傳的服務未實作 SmartEditingService 介面")
+	}
+}
+
+// TestSetSmartEditingService 測試設定智慧編輯服務功能
+// 驗證編輯器服務能正確設定智慧編輯服務實例
+func TestSetSmartEditingService(t *testing.T) {
+	service, _ := createTestEditorService()
+	
+	// 建立新的智慧編輯服務實例
+	newSmartEditSvc := NewSmartEditingService()
+	
+	// 設定新的智慧編輯服務
+	service.SetSmartEditingService(newSmartEditSvc)
+	
+	// 驗證設定成功
+	currentSvc := service.GetSmartEditingService()
+	if currentSvc != newSmartEditSvc {
+		t.Error("智慧編輯服務設定失敗")
 	}
 }

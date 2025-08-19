@@ -73,7 +73,7 @@ func setupIntegrationTest(t *testing.T) *IntegrationTestSuite {
 	perfService := NewPerformanceService(nil) // 暫時不設定編輯器服務
 	
 	// 建立編輯器服務（需要在效能服務之後建立以避免循環依賴）
-	editorService := NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, perfService)
+	editorService := NewEditorService(fileRepo, encryptionSvc, passwordSvc, biometricSvc, perfService, nil)
 	
 	// 更新效能服務的編輯器服務引用
 	if ps, ok := perfService.(*performanceService); ok {

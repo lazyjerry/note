@@ -1,0 +1,332 @@
+// Demo program to demonstrate Chinese input optimization functionality
+// 演示繁體中文輸入法優化功能的示例程式
+package main
+
+import (
+	"fmt"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
+	"mac-notebook-app/ui"
+	"mac-notebook-app/internal/services"
+)
+
+func main() {
+	// 建立應用程式
+	myApp := app.NewWithID("chinese-input-demo")
+	myWindow := myApp.NewWindow("繁體中文輸入法優化演示")
+	myWindow.Resize(fyne.NewSize(1000, 700))
+
+	// 建立中文輸入增強器
+	chineseInputEnhancer := ui.NewChineseInputEnhancer()
+	
+	// 建立中文輸入服務
+	chineseInputService := services.NewChineseInputService()
+	
+	// 建立輸入法整合服務
+	imeService := services.NewIMEIntegrationService()
+
+	// 建立分析結果顯示區域
+	analysisLabel := widget.NewLabel("文字分析結果將在此顯示")
+	analysisLabel.Wrapping = fyne.TextWrapWord
+	
+	compositionLabel := widget.NewLabel("文字組成分析：")
+	compositionLabel.Wrapping = fyne.TextWrapWord
+	
+	optimizationLabel := widget.NewLabel("輸入法優化建議：")
+	optimizationLabel.Wrapping = fyne.TextWrapWord
+	
+	validationLabel := widget.NewLabel("輸入驗證結果：")
+	validationLabel.Wrapping = fyne.TextWrapWord
+
+	// 建立控制面板
+	controlPanel := container.NewVBox(
+		widget.NewLabel("🎛️ 中文輸入控制面板"),
+		widget.NewSeparator(),
+		
+		// 基本設定
+		widget.NewCheck("顯示候選字視窗", func(checked bool) {
+			chineseInputEnhancer.SetShowCandidates(checked)
+			fmt.Printf("候選字視窗顯示: %v\n", checked)
+		}),
+		
+		widget.NewCheck("啟用自動完成", func(checked bool) {
+			chineseInputEnhancer.SetAutoComplete(checked)
+			fmt.Printf("自動完成: %v\n", checked)
+		}),
+		
+		widget.NewSeparator(),
+		
+		// 字型設定
+		widget.NewLabel("字型設定："),
+		widget.NewButton("PingFang TC", func() {
+			chineseInputEnhancer.SetFontName("PingFang TC")
+			fmt.Println("設定字型：PingFang TC")
+		}),
+		widget.NewButton("Heiti TC", func() {
+			chineseInputEnhancer.SetFontName("Heiti TC")
+			fmt.Println("設定字型：Heiti TC")
+		}),
+		
+		widget.NewSeparator(),
+		
+		// 字型大小
+		widget.NewLabel("字型大小："),
+		func() *widget.Slider {
+			slider := widget.NewSlider(10, 24)
+			slider.Value = 14
+			slider.OnChanged = func(value float64) {
+				chineseInputEnhancer.SetFontSize(float32(value))
+				fmt.Printf("設定字型大小：%.0f\n", value)
+			}
+			return slider
+		}(),
+		
+		widget.NewSeparator(),
+		
+		// 分析功能
+		widget.NewButton("🔍 分析文字", func() {
+			text := chineseInputEnhancer.GetText()
+			analyzeText(text, chineseInputService, analysisLabel, compositionLabel, optimizationLabel, validationLabel)
+		}),
+		
+		widget.NewButton("🧹 清空文字", func() {
+			chineseInputEnhancer.SetText("")
+			analysisLabel.SetText("文字分析結果將在此顯示")
+			compositionLabel.SetText("文字組成分析：")
+			optimizationLabel.SetText("輸入法優化建議：")
+			validationLabel.SetText("輸入驗證結果：")
+		}),
+		
+		widget.NewSeparator(),
+		
+		// 輸入法控制
+		widget.NewLabel("輸入法控制："),
+		widget.NewButton("切換到中文輸入法", func() {
+			err := imeService.SwitchToChineseIME()
+			if err != nil {
+				fmt.Printf("切換到中文輸入法失敗: %v\n", err)
+			} else {
+				fmt.Printf("已切換到中文輸入法: %s\n", imeService.GetCurrentIME())
+			}
+		}),
+		
+		widget.NewButton("切換到英文輸入法", func() {
+			err := imeService.SwitchToEnglishIME()
+			if err != nil {
+				fmt.Printf("切換到英文輸入法失敗: %v\n", err)
+			} else {
+				fmt.Printf("已切換到英文輸入法: %s\n", imeService.GetCurrentIME())
+			}
+		}),
+		
+		widget.NewSeparator(),
+		
+		// 測試文字按鈕
+		widget.NewLabel("快速測試："),
+		widget.NewButton("插入中文範例", func() {
+			sampleText := "這是一個繁體中文輸入法優化的測試範例。包含各種中文字符、標點符號，以及一些English混合內容。"
+			chineseInputEnhancer.SetText(sampleText)
+			analyzeText(sampleText, chineseInputService, analysisLabel, compositionLabel, optimizationLabel, validationLabel)
+		}),
+		
+		widget.NewButton("插入注音範例", func() {
+			sampleText := "ㄓㄜˋ ㄕˋ ㄓㄨˋ ㄧㄣ ㄈㄨˊ ㄏㄠˋ ㄘㄜˋ ㄕˋ"
+			chineseInputEnhancer.SetText(sampleText)
+			analyzeText(sampleText, chineseInputService, analysisLabel, compositionLabel, optimizationLabel, validationLabel)
+			
+			// 模擬注音輸入法組合
+			err := imeService.StartComposition("ㄋㄧˇㄏㄠˇ")
+			if err == nil {
+				candidates := imeService.GetCandidates()
+				fmt.Printf("注音候選字: %v\n", candidates)
+			}
+		}),
+		
+		widget.NewButton("插入混合範例", func() {
+			sampleText := "Hello 你好！This is 測試 123 混合文字。"
+			chineseInputEnhancer.SetText(sampleText)
+			analyzeText(sampleText, chineseInputService, analysisLabel, compositionLabel, optimizationLabel, validationLabel)
+		}),
+		
+		widget.NewButton("測試組合輸入", func() {
+			// 測試注音組合輸入
+			testCompositions := []string{"ㄋㄧˇ", "ㄏㄠˇ", "ㄕˋ", "ㄐㄧㄝˋ"}
+			for _, comp := range testCompositions {
+				err := imeService.StartComposition(comp)
+				if err == nil {
+					candidates := imeService.GetCandidates()
+					fmt.Printf("組合 '%s' 的候選字: %v\n", comp, candidates)
+					imeService.CancelComposition()
+				}
+			}
+		}),
+	)
+
+	// 設定中文輸入增強器的回調函數
+	chineseInputEnhancer.SetOnTextChanged(func(text string) {
+		fmt.Printf("文字變更: %s\n", text)
+		// 即時分析文字
+		if text != "" {
+			analyzeText(text, chineseInputService, analysisLabel, compositionLabel, optimizationLabel, validationLabel)
+		}
+	})
+
+	chineseInputEnhancer.SetOnCompositionChanged(func(text string) {
+		fmt.Printf("組合文字變更: %s\n", text)
+	})
+
+	chineseInputEnhancer.SetOnCandidateSelected(func(word string) {
+		fmt.Printf("選擇候選字: %s\n", word)
+	})
+
+	// 建立分析結果面板
+	analysisPanel := container.NewVBox(
+		widget.NewLabel("📊 文字分析結果"),
+		widget.NewSeparator(),
+		analysisLabel,
+		widget.NewSeparator(),
+		compositionLabel,
+		widget.NewSeparator(),
+		optimizationLabel,
+		widget.NewSeparator(),
+		validationLabel,
+	)
+
+	// 建立主要佈局
+	leftPanel := container.NewVBox(
+		controlPanel,
+	)
+
+	rightPanel := container.NewVBox(
+		analysisPanel,
+	)
+
+	mainContent := container.NewHSplit(
+		leftPanel,
+		container.NewVSplit(
+			chineseInputEnhancer.GetContainer(),
+			rightPanel,
+		),
+	)
+	mainContent.Offset = 0.3 // 左側面板佔 30%
+
+	// 建立完整佈局
+	fullLayout := container.NewVBox(
+		widget.NewLabel("🎉 繁體中文輸入法優化功能演示"),
+		widget.NewSeparator(),
+		mainContent,
+	)
+
+	// 設定視窗內容
+	myWindow.SetContent(fullLayout)
+
+	// 顯示說明
+	fmt.Println("🎉 繁體中文輸入法優化演示程式已啟動！")
+	fmt.Println("📋 功能說明：")
+	fmt.Println("   - 在上方文字輸入區域輸入中文內容")
+	fmt.Println("   - 使用左側控制面板調整中文輸入設定")
+	fmt.Println("   - 點擊「分析文字」按鈕查看詳細分析結果")
+	fmt.Println("   - 使用快速測試按鈕插入範例文字")
+	fmt.Println("   - 所有操作都會在終端顯示詳細資訊")
+	fmt.Println("")
+
+	// 設定預設值
+	chineseInputEnhancer.SetShowCandidates(true)
+	chineseInputEnhancer.SetAutoComplete(true)
+
+	// 顯示視窗並運行
+	myWindow.ShowAndRun()
+}
+
+// analyzeText 分析文字內容並更新顯示
+// 參數：
+//   - text: 要分析的文字
+//   - service: 中文輸入服務
+//   - labels: 各種顯示標籤
+func analyzeText(text string, service services.ChineseInputService, analysisLabel, compositionLabel, optimizationLabel, validationLabel *widget.Label) {
+	if text == "" {
+		return
+	}
+
+	// 基本分析
+	hasChineseChars := service.ContainsChineseCharacters(text)
+	chineseCharCount := service.CountChineseCharacters(text)
+	
+	basicAnalysis := fmt.Sprintf("文字長度: %d 字符\n包含中文: %v\n中文字符數: %d",
+		len([]rune(text)), hasChineseChars, chineseCharCount)
+	analysisLabel.SetText(basicAnalysis)
+
+	// 文字組成分析
+	composition := service.AnalyzeTextComposition(text)
+	compositionText := fmt.Sprintf("總字符: %d\n中文字符: %d (%.1f%%)\n英文字符: %d\n數字字符: %d\n標點符號: %d\n空白字符: %d",
+		composition.TotalCharacters,
+		composition.ChineseCharacters,
+		composition.ChineseRatio*100,
+		composition.EnglishCharacters,
+		composition.NumberCharacters,
+		composition.PunctuationMarks,
+		composition.WhitespaceChars)
+	compositionLabel.SetText("文字組成分析：\n" + compositionText)
+
+	// 輸入法優化分析
+	optimization := service.OptimizeInputMethod(text)
+	optimizationText := fmt.Sprintf("信心分數: %.2f\n", optimization.ConfidenceScore)
+	
+	if len(optimization.Corrections) > 0 {
+		optimizationText += "修正建議:\n"
+		for _, correction := range optimization.Corrections {
+			optimizationText += "• " + correction + "\n"
+		}
+	}
+	
+	if len(optimization.Improvements) > 0 {
+		optimizationText += "改善建議:\n"
+		for _, improvement := range optimization.Improvements {
+			optimizationText += "• " + improvement + "\n"
+		}
+	}
+	
+	if len(optimization.Corrections) == 0 && len(optimization.Improvements) == 0 {
+		optimizationText += "輸入良好，無需優化建議。"
+	}
+	
+	optimizationLabel.SetText("輸入法優化建議：\n" + optimizationText)
+
+	// 輸入驗證
+	validation := service.ValidateChineseInput(text)
+	validationText := fmt.Sprintf("驗證結果: %v\n", validation.IsValid)
+	
+	if len(validation.Errors) > 0 {
+		validationText += "錯誤:\n"
+		for _, error := range validation.Errors {
+			validationText += "• " + error + "\n"
+		}
+	}
+	
+	if len(validation.Warnings) > 0 {
+		validationText += "警告:\n"
+		for _, warning := range validation.Warnings {
+			validationText += "• " + warning + "\n"
+		}
+	}
+	
+	if len(validation.Suggestions) > 0 {
+		validationText += "建議:\n"
+		for _, suggestion := range validation.Suggestions {
+			validationText += "• " + suggestion + "\n"
+		}
+	}
+	
+	validationLabel.SetText("輸入驗證結果：\n" + validationText)
+
+	// 在終端輸出詳細分析
+	fmt.Println("📊 文字分析結果：")
+	fmt.Printf("   文字內容: %s\n", text)
+	fmt.Printf("   %s\n", basicAnalysis)
+	fmt.Printf("   中文比例: %.1f%%\n", composition.ChineseRatio*100)
+	fmt.Printf("   優化信心分數: %.2f\n", optimization.ConfidenceScore)
+	fmt.Printf("   驗證結果: %v\n", validation.IsValid)
+	fmt.Println("")
+}

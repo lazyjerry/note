@@ -750,3 +750,10 @@ func (ftw *FileTreeWidget) GetFileInfo(filePath string) (*FileNode, error) {
 	// 如果快取中沒有，回傳錯誤
 	return nil, fmt.Errorf("找不到檔案或目錄: %s", filePath)
 }
+
+// GetContainer 取得檔案樹的容器
+// 回傳：檔案樹的 fyne.Container 實例
+// 用於將檔案樹嵌入到其他 UI 佈局中
+func (ftw *FileTreeWidget) GetContainer() *fyne.Container {
+	return ftw.container
+}
